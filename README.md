@@ -206,7 +206,7 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | D | Kategorie |
 | E | Betrag |
 | F | Bezahlt von (Haushalt ausgeschrieben) |
-| G | Aufteilung (`km`, `50:50`, `nur <Haushalt>`, `fix`) |
+| G | Aufteilung (`nach km`, `je zur Hälfte`, `nur <Haushalt>`, `fix`) |
 | H | Anteil erster Haushalt (nur bei `fix`) |
 | I | km-Stand (Tanken) |
 | J | Liter |

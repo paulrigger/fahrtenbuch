@@ -287,12 +287,20 @@ function hhCode_(v) {
 }
 /** Aufteilung lesen/schreiben: km | 50:50 | fix | PK | TM  <->  im Sheet ausgeschrieben */
 function splitCode_(v) {
-  const s = String(v == null ? '' : v).trim();
-  if (s === '' ) return '50:50';
-  if (s === 'km' || s === '50:50' || s === 'fix') return s;
+  if (v instanceof Date) return '50:50';                 // Sheets hat "50:50" als Uhrzeit gelesen
+  const s = String(v == null ? '' : v).trim(), l = s.toLowerCase();
+  if (s === '' || l === '50:50' || l === '50:50:00' || l === 'je zur hälfte') return '50:50';
+  if (l === 'km' || l === 'nach km') return 'km';
+  if (l === 'fix') return 'fix';
   return hhCode_(s.replace(/^nur\s+/i, '')) || s;
 }
-function splitLabel_(c) { return (c === 'PK' || c === 'TM') ? 'nur ' + HH_LABELS[c] : c; }
+/** so steht die Aufteilung im Sheet (Text, den Sheets nicht umdeutet) */
+function splitLabel_(c) {
+  if (c === 'PK' || c === 'TM') return 'nur ' + HH_LABELS[c];
+  if (c === '50:50') return 'je zur Hälfte';
+  if (c === 'km') return 'nach km';
+  return c;
+}
 
 function expSheet_() {
   const sh = ss_().getSheetByName(EXP_SHEET);
