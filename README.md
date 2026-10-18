@@ -66,7 +66,7 @@ Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertra
 
 ## So werden Kosten aufgeteilt
 
-Grundlage ist der Vertrag zur gemeinschaftlichen Nutzung (§3). Abgerechnet wird zwischen den beiden **Haushalten** **PK** und **TM** – wer tankt oder zahlt, legt aus der Haushaltskasse aus.
+Grundlage ist der Vertrag zur gemeinschaftlichen Nutzung (§3). Abgerechnet wird zwischen den beiden **Haushalten** – wer tankt oder zahlt, legt aus der Haushaltskasse aus. In App und Sheet stehen die Haushalte ausgeschrieben (z. B. „Anna & Ben"); intern verwendet die API die Kürzel `PK` / `TM`.
 
 | Kategorie | Fahrzeug | Aufteilung |
 |---|---|---|
@@ -152,7 +152,7 @@ Ein positiver Wert bedeutet *TM schuldet PK*, ein negativer *PK schuldet TM*.
 ### Update der API
 
 1. Neuen `api/Code.gs` einfügen und speichern.
-2. Bei Änderungen an Ausgaben einmal **`recomputeExpenses`** ausführen.
+2. Bei Änderungen an Ausgaben einmal **`recomputeExpenses`** ausführen (einmalig bei v2.2: **`migrateLabels`** – schreibt die Haushalte im Sheet aus).
 3. **Bereitstellungen verwalten → ✏️ → Neue Version** (URL bleibt gleich).
 
 ### Update der Oberfläche
@@ -205,16 +205,16 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | C | Fahrzeug |
 | D | Kategorie |
 | E | Betrag |
-| F | Bezahlt von (`PK` / `TM`) |
-| G | Aufteilung (`km`, `50:50`, `PK`, `TM`, `fix`) |
-| H | Anteil PK (nur bei `fix`) |
+| F | Bezahlt von (Haushalt ausgeschrieben) |
+| G | Aufteilung (`km`, `50:50`, `nur <Haushalt>`, `fix`) |
+| H | Anteil erster Haushalt (nur bei `fix`) |
 | I | km-Stand (Tanken) |
 | J | Liter |
 | K | Vollgetankt |
 | L | Notiz |
 | M | Status (`offen` / `abgerechnet`) |
 | N–P | Erfasst von, Geändert von, Geändert am |
-| Q | Anteil PK (berechnet, von der API geschrieben) |
+| Q | Anteil erster Haushalt (berechnet, von der API geschrieben) |
 | R | Ausgleich (+ TM→PK / − PK→TM, von der API geschrieben) |
 
 ---

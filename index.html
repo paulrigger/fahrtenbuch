@@ -224,10 +224,11 @@
   .xi .t.Julia { background: linear-gradient(145deg, var(--classic-crimson), var(--rosewood)); }
   .xi .m { flex: 1; min-width: 0; }
   .xi .m b { display: block; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .xi .m span { display: block; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xi .m span { display: block; font-size: 13px; color: var(--muted); line-height: 1.35; }
   .xi .r { text-align: right; flex: none; }
   .xi .r b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
   .xi .r span { font-size: 12px; color: var(--muted); }
+  .xi .r .tag { margin-top: 4px; }
   .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-ink); }
   .empty { text-align: center; color: var(--muted); padding: 24px; font-size: 15px; }
 
@@ -238,6 +239,8 @@
   .seg button { flex: 1; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 15px; font-weight: 600;
                 padding: 10px 6px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
   .seg button.on { background: var(--primary); color: var(--primary-ink); }
+  .seg.col { flex-direction: column; }
+  .seg.col button { text-align: left; padding: 11px 14px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chips button { border: 1px solid var(--line); background: var(--raised); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600;
                   padding: 9px 13px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
@@ -325,7 +328,7 @@
     <label class="check"><input type="checkbox" id="x-full" checked> Vollgetankt</label>
   </div>
   <div class="fgroup"><label>Bezahlt von</label><div class="seg" id="x-payer"></div></div>
-  <div class="fgroup" id="x-split-wrap"><label>Aufteilung</label><div class="seg" id="x-split"></div></div>
+  <div class="fgroup" id="x-split-wrap"><label>Aufteilung</label><div class="seg col" id="x-split"></div></div>
   <div class="fgroup"><label for="x-note">Notiz (optional)</label><input id="x-note" class="small" type="text" autocomplete="off" maxlength="300" placeholder="z. B. Pickerl 2026"></div>
   <div class="preview" id="x-preview"></div>
   <div class="msg" id="x-msg"></div>
@@ -662,10 +665,15 @@ function renderExp() {
 }
 function xItem(e) {
   var title = esc(e.cat) + ' · ' + (CAR_SHORT[e.car] || esc(e.car));
-  var sub = dDE(e.date) + ' · bezahlt ' + e.payer + (e.note ? ' · ' + esc(e.note) : '');
-  var sh = (e.provisional ? '<span class="tag">vorläufig</span> ' : '') + 'PK ' + pct(e.share);
+  function nb(h) { return esc(hhLabel(h)).replace(/ /g, '&nbsp;'); }   // Namen nicht umbrechen
+  var sub = dDE(e.date) + (e.note ? ' · ' + esc(e.note) : '');
+  var paid = 'bezahlt von ' + nb(e.payer);
+  var split = e.split === 'PK' || e.split === 'TM' ? 'trägt nur ' + nb(e.split)
+            : Math.abs(e.share - 0.5) < 0.0001 ? 'je zur Hälfte'
+            : nb('PK') + '&nbsp;' + pct(e.share).replace(' ', '&nbsp;') + ' · ' + nb('TM') + '&nbsp;' + pct(1 - e.share).replace(' ', '&nbsp;');
+  var sh = e.provisional ? '<span class="tag">vorläufig</span>' : '';
   return '<div class="xi" onclick="openExp(null,\'' + esc(e.id) + '\')"><div class="t ' + (e.car === 'Schwitzkarre' ? 'Schwitzkarre' : 'Julia') + '">' + ic(CAT_ICON[e.cat] || 'box') + '</div>'
-    + '<div class="m"><b>' + title + '</b><span>' + sub + '</span></div>'
+    + '<div class="m"><b>' + title + '</b><span>' + sub + '</span><span>' + paid + '</span><span>' + split + '</span></div>'
     + '<div class="r"><b>' + eur(e.amount) + '</b><span>' + sh + '</span></div></div>';
 }
 
@@ -715,7 +723,7 @@ function renderXF() {
   var tank = XF.split === 'km';
   $('x-tank').style.display = XF.cat === 'Tanken' ? '' : 'none';
   $('x-split-wrap').style.display = (tank || XF.split === 'fix') ? 'none' : '';
-  $('x-split').innerHTML = segHTML([['50:50', '50 : 50'], ['PK', 'nur PK'], ['TM', 'nur TM']], XF.split, 'setSplit');
+  $('x-split').innerHTML = segHTML([['50:50', 'je zur Hälfte'], ['PK', 'nur ' + esc(hhLabel('PK'))], ['TM', 'nur ' + esc(hhLabel('TM'))]], XF.split, 'setSplit');
   updPreview();
 }
 function setCar(c) { XF.car = c; var cats = EXP.categories[c] || []; if (cats.indexOf(XF.cat) < 0) setCat(cats[0]); else renderXF(); }

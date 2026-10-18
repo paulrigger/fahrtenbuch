@@ -276,6 +276,24 @@ function household_(name) {
   return null;
 }
 
+/** Haushalt-Kürzel (PK/TM) aus Kürzel, ausgeschriebenem Namen ("Katrin & Paul") oder Person */
+function hhCode_(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (s === 'PK' || s === 'TM') return s;
+  const l = s.toLowerCase();
+  if (HH_LABELS.PK && l === HH_LABELS.PK.toLowerCase()) return 'PK';
+  if (HH_LABELS.TM && l === HH_LABELS.TM.toLowerCase()) return 'TM';
+  return household_(s);
+}
+/** Aufteilung lesen/schreiben: km | 50:50 | fix | PK | TM  <->  im Sheet ausgeschrieben */
+function splitCode_(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (s === '' ) return '50:50';
+  if (s === 'km' || s === '50:50' || s === 'fix') return s;
+  return hhCode_(s.replace(/^nur\s+/i, '')) || s;
+}
+function splitLabel_(c) { return (c === 'PK' || c === 'TM') ? 'nur ' + HH_LABELS[c] : c; }
+
 function expSheet_() {
   const sh = ss_().getSheetByName(EXP_SHEET);
   if (!sh) throw new Error('Tab "' + EXP_SHEET + '" fehlt im Sheet.');
@@ -305,7 +323,7 @@ function readExpenses_() {
   return sh.getRange(2, 1, n - 1, EXP_COLS).getValues().map(function (r, i) {
     return {
       row: i + 2, id: String(r[0]), date: fmtDate_(r[1]), car: String(r[2]), cat: String(r[3]),
-      amount: num_(r[4]) || 0, payer: String(r[5]), split: String(r[6] || '50:50'), fixShare: num_(r[7]),
+      amount: num_(r[4]) || 0, payer: hhCode_(r[5]) || String(r[5]), split: splitCode_(r[6]), fixShare: num_(r[7]),
       km: num_(r[8]), liter: num_(r[9]), full: bool_(r[10]), note: String(r[11] || ''),
       status: String(r[12] || 'offen'), createdBy: String(r[13] || ''), changedBy: String(r[14] || ''),
       changedAt: r[15] instanceof Date ? Utilities.formatDate(r[15], Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm') : String(r[15] || '')
@@ -402,7 +420,7 @@ function validateExpense_(x) {
   const e = {
     date: fmtDate_(x.date) || Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd'),
     car: String(x.car || ''), cat: String(x.cat || ''), amount: num_(x.amount),
-    payer: String(x.payer || ''), split: String(x.split || ''), km: num_(x.km),
+    payer: hhCode_(x.payer) || '', split: x.split ? splitCode_(x.split) : '', km: num_(x.km),
     liter: num_(x.liter), full: bool_(x.full), note: String(x.note || '').slice(0, 300),
     status: x.status === 'abgerechnet' ? 'abgerechnet' : 'offen'
   };
@@ -427,7 +445,7 @@ function expenseAction_(action, d, driver) {
       const e = validateExpense_(d.expense || {});
       const id = 'B' + now.getTime().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36).toUpperCase();
       if (readExpenses_().some(function (x) { return x.id === id; })) throw new Error('Bitte nochmal speichern.');
-      sh.appendRow([id, e.date, e.car, e.cat, e.amount, e.payer, e.split, '', e.km == null ? '' : e.km,
+      sh.appendRow([id, e.date, e.car, e.cat, e.amount, HH_LABELS[e.payer], splitLabel_(e.split), '', e.km == null ? '' : e.km,
                     e.liter == null ? '' : e.liter, e.cat === 'Tanken' ? e.full : '', e.note, 'offen', driver, '', '']);
       return { id: id, mode: 'added' };
     }
@@ -444,7 +462,7 @@ function expenseAction_(action, d, driver) {
     if (hit.status === 'abgerechnet' && x.status !== 'offen') throw new Error('Abgerechnete Buchungen können nicht geändert werden.');
     const e = validateExpense_(Object.assign({}, hit, x));
     const fix = e.split === 'fix' ? (hit.fixShare == null ? 0.5 : hit.fixShare) : '';
-    sh.getRange(hit.row, 2, 1, 15).setValues([[e.date, e.car, e.cat, e.amount, e.payer, e.split, fix,
+    sh.getRange(hit.row, 2, 1, 15).setValues([[e.date, e.car, e.cat, e.amount, HH_LABELS[e.payer], splitLabel_(e.split), fix,
       e.km == null ? '' : e.km, e.liter == null ? '' : e.liter, e.cat === 'Tanken' ? e.full : '',
       e.note, e.status, hit.createdBy, driver, now]]);
     return { id: hit.id, mode: 'updated' };
@@ -453,6 +471,25 @@ function expenseAction_(action, d, driver) {
   const out = expensesResponse_();
   out.result = res;
   return out;
+}
+
+/** Einmalig im Editor ausführen: schreibt Haushalte im Tab "Buchungen" aus (statt PK/TM) und setzt Überschriften. */
+function migrateLabels() {
+  withLock_(function () {
+    const sh = expSheet_();
+    const n = sh.getLastRow();
+    sh.getRange(1, 6, 1, 3).setValues([['Bezahlt von', 'Aufteilung', 'Anteil ' + HH_LABELS.PK + ' (fix)']]);
+    sh.getRange(1, 17, 1, 2).setValues([['Anteil ' + HH_LABELS.PK + ' (berechnet)',
+      'Ausgleich (+ ' + HH_LABELS.TM + ' → ' + HH_LABELS.PK + ' / − umgekehrt)']]);
+    if (n < 2) return;
+    const fg = sh.getRange(2, 6, n - 1, 2).getValues().map(function (r) {
+      const p = hhCode_(r[0]);
+      return [p ? HH_LABELS[p] : r[0], splitLabel_(splitCode_(r[1]))];
+    });
+    sh.getRange(2, 6, fg.length, 2).setValues(fg);
+  });
+  writeComputed_();
+  Logger.log('Fertig: Haushalte ausgeschrieben.');
 }
 
 /** Einmalig/bei Bedarf im Editor ausführen: rechnet Spalten Q/R neu. */
