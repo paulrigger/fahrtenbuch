@@ -209,7 +209,8 @@
   .saldo .who { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
   .saldo .who .ic { width: 18px; height: 18px; color: var(--turquoise-surf); }
   .saldo .hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
-  .saldo .btn { width: 100%; margin-top: 14px; }
+  .add-exp { width: 100%; padding: 18px 12px; font-size: 18px; border-radius: 18px; box-shadow: 0 8px 24px -10px rgba(6,28,40,.5); }
+  .add-exp .ic { width: 22px; height: 22px; }
   .list-h { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 4px 0; font-size: 13px; font-weight: 700;
             color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
   .list-h button { border: 0; background: none; color: var(--turquoise-surf); font: inherit; font-size: 13px; text-transform: none; letter-spacing: 0; cursor: pointer; }
@@ -290,7 +291,8 @@
   </section>
 
   <section id="view-exp" hidden>
-    <div class="saldo" id="saldo"><div class="skeleton" style="height:120px"></div></div>
+    <button class="btn primary add-exp" id="add-exp" onclick="openExp()"><span data-i="plus"></span>Neue Ausgabe eintragen</button>
+    <div class="saldo" id="saldo" style="margin-top:14px"><div class="skeleton" style="height:120px"></div></div>
     <div id="xlists" style="display:flex;flex-direction:column;gap:10px;margin-top:14px"></div>
   </section>
 
@@ -648,8 +650,7 @@ function renderExp() {
   el.innerHTML = '<div class="lbl">Offener Saldo</div>'
     + '<div class="amt">' + eur(Math.abs(s)) + '</div>'
     + '<div class="who">' + who + '</div>'
-    + (EXP.saldoProvisional ? '<div class="hint">Enthält vorläufige Tankbeträge – fix ab der nächsten Volltankung.</div>' : '')
-    + '<button class="btn primary" onclick="openExp()">' + ic('plus') + 'Ausgabe eintragen</button>';
+    + (EXP.saldoProvisional ? '<div class="hint">Enthält vorläufige Tankbeträge – fix ab der nächsten Volltankung.</div>' : '');
 
   var open = EXP.expenses.filter(function (e) { return e.status !== 'abgerechnet'; });
   var done = EXP.expenses.filter(function (e) { return e.status === 'abgerechnet'; });
