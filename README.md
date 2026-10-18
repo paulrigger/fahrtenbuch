@@ -3,6 +3,9 @@
 Web-App für das gemeinsame Fahrtenbuch zweier Haushalte mit zwei geteilten Autos – einem Elektroauto (MG5, „Schwitzkarre") und einem VW T5 („Julia Brettner").
 Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertrag aufgeteilt.
 
+**👉 App: [paulrigger.github.io/fahrtenbuch](https://paulrigger.github.io/fahrtenbuch/)** · [Demo mit Beispieldaten](https://paulrigger.github.io/fahrtenbuch/?demo)
+<sub>Für echte Daten den Link mit Zugangsschlüssel (`?k=…`) aus der Gruppe verwenden.</sub>
+
 ![Fahrtenbuch – Übersicht](docs/hero.png)
 
 > Screenshots zeigen Demo-Daten. Echte Daten liegen ausschließlich im privaten Google Sheet.
