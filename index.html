@@ -191,6 +191,71 @@
   .msg.err  { display: block; background: var(--err-bg);  color: var(--err-ink); }
   .dialog .row { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 16px; }
 
+  /* ---------- Navigation ---------- */
+  body { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  .tabbar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(12px, env(safe-area-inset-bottom));
+            display: flex; gap: 4px; padding: 5px; border-radius: 20px; z-index: 5;
+            background: var(--sheet-bg); border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(6,28,40,.35); }
+  .tabbar button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 650;
+                   display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 22px; border-radius: 15px; cursor: pointer; }
+  .tabbar button .ic { width: 22px; height: 22px; }
+  .tabbar button.on { background: var(--raised); color: var(--ink); }
+  section[hidden] { display: none !important; }
+
+  /* ---------- Ausgaben ---------- */
+  .saldo { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px; box-shadow: var(--shadow); }
+  .saldo .lbl { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .saldo .amt { font-size: 36px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
+  .saldo .who { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
+  .saldo .who .ic { width: 18px; height: 18px; color: var(--turquoise-surf); }
+  .saldo .hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .saldo .btn { width: 100%; margin-top: 14px; }
+  .list-h { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 4px 0; font-size: 13px; font-weight: 700;
+            color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .list-h button { border: 0; background: none; color: var(--turquoise-surf); font: inherit; font-size: 13px; text-transform: none; letter-spacing: 0; cursor: pointer; }
+  .xlist { background: var(--card); border: 1px solid var(--line); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
+  .xi { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-top: 1px solid var(--line); cursor: pointer; }
+  .xi:first-child { border-top: 0; }
+  .xi:active { background: var(--raised); }
+  .xi .t { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; color: #fff; flex: none; }
+  .xi .t svg { width: 20px; height: 20px; }
+  .xi .t.Schwitzkarre { background: linear-gradient(145deg, var(--turquoise-surf), var(--baltic-blue)); }
+  .xi .t.Julia { background: linear-gradient(145deg, var(--classic-crimson), var(--rosewood)); }
+  .xi .m { flex: 1; min-width: 0; }
+  .xi .m b { display: block; font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xi .m span { display: block; font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .xi .r { text-align: right; flex: none; }
+  .xi .r b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .xi .r span { font-size: 12px; color: var(--muted); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-ink); }
+  .empty { text-align: center; color: var(--muted); padding: 24px; font-size: 15px; }
+
+  /* ---------- Formular ---------- */
+  .dialog.tall { max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .fgroup { margin-top: 14px; }
+  .seg { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: var(--raised); }
+  .seg button { flex: 1; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 15px; font-weight: 600;
+                padding: 10px 6px; border-radius: 11px; cursor: pointer; white-space: nowrap; }
+  .seg button.on { background: var(--primary); color: var(--primary-ink); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips button { border: 1px solid var(--line); background: var(--raised); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600;
+                  padding: 9px 13px; border-radius: 999px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .chips button .ic { width: 17px; height: 17px; }
+  .chips button.on { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
+  input.small, textarea { font-size: 16px; font-weight: 500; }
+  input[type="date"] { font-size: 18px; min-height: 54px; }
+  .check { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 12px; }
+  .check input { width: 24px; height: 24px; accent-color: var(--turquoise-surf); }
+  .preview { margin-top: 16px; padding: 14px; border-radius: 14px; background: var(--raised); font-size: 14.5px; line-height: 1.5; }
+  .preview b { font-size: 17px; }
+  .preview .bar2 { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin: 8px 0 6px; background: var(--line); }
+  .preview .bar2 i { display: block; background: var(--turquoise-surf); }
+  .preview .bar2 i + i { background: var(--classic-crimson); }
+  .linkbtn { border: 0; background: none; color: var(--classic-crimson); font: inherit; font-weight: 650; padding: 12px 0 0; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+  .linkbtn .ic { width: 18px; height: 18px; }
+  .btn.small { padding: 11px 10px; font-size: 15px; }
+  .actions.extra { padding-top: 0; border-top: 0; }
+
   .toast { position: fixed; left: 50%; top: max(16px, env(safe-area-inset-top)); transform: translate(-50%, calc(-100% - 60px)); visibility: hidden;
            background: var(--primary); color: var(--primary-ink); padding: 12px 16px; border-radius: 14px; font-size: 15px; font-weight: 600;
            display: flex; align-items: center; gap: 8px; transition: transform .3s cubic-bezier(.2,.8,.2,1), visibility .3s; z-index: 20; max-width: 90vw; text-align: center; }
@@ -202,33 +267,72 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>Fahrtenbuch <span class="badge">2.1</span></h1>
+      <h1>Fahrtenbuch <span class="badge">2.2</span></h1>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="me-btn" id="me" onclick="openPicker()"></button>
-      <button class="icon-btn" id="refresh" aria-label="Aktualisieren" onclick="load()" data-i="refresh"></button>
+      <button class="icon-btn" id="refresh" aria-label="Aktualisieren" onclick="load(); if (VIEW === 'exp') loadExp();" data-i="refresh"></button>
     </div>
   </header>
 
   <div class="news" id="news" hidden>
     <button class="x" aria-label="Schließen" onclick="hideNews()" data-i="x"></button>
-    <b><span data-i="sparkles"></span>Neu in Version 2.1</b>
+    <b><span data-i="sparkles"></span>Neu in Version 2.2</b>
     <ul>
-      <li><b style="display:inline">Fahrt eintragen</b>: Start &amp; Ende in einem Schritt – ohne vorher zu starten</li>
-      <li>Gefahrene km werden live berechnet</li>
-      <li>Prüft falsche oder lückenhafte km-Stände</li>
-      <li>Neues Design mit neuen Icons, passt jetzt aufs Handy</li>
-      <li><b style="display:inline">Ohne Google-Banner</b> und als App installierbar: Teilen → „Zum Home-Bildschirm"</li>
+      <li><b style="display:inline">Ausgaben</b>: Tanken, Versicherung, Service &amp; Co. direkt eintragen (unten auf „Ausgaben" tippen)</li>
+      <li>Tanken wird automatisch nach gefahrenen km zwischen zwei Volltankungen aufgeteilt</li>
+      <li>Aktueller Saldo: wer wem wie viel schuldet</li>
     </ul>
   </div>
 
+  <section id="view-trips">
   <div id="cars"><div class="skeleton"></div><div class="skeleton" style="margin-top:14px"></div></div>
+  </section>
+
+  <section id="view-exp" hidden>
+    <div class="saldo" id="saldo"><div class="skeleton" style="height:120px"></div></div>
+    <div id="xlists" style="display:flex;flex-direction:column;gap:10px;margin-top:14px"></div>
+  </section>
 
   <a class="sheet-link" id="sheet-link" href="#" target="_blank" hidden><span data-i="sheet"></span>Google Sheet öffnen</a>
   <div class="version" id="version"></div>
 </div>
 
-<div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker()"></div>
+<nav class="tabbar">
+  <button id="tab-trips" class="on" onclick="showView('trips')"><span data-i="car"></span>Fahrten</button>
+  <button id="tab-exp" onclick="showView('exp')"><span data-i="receipt"></span>Ausgaben</button>
+</nav>
+
+<div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp()"></div>
+
+<div class="dialog tall" id="xdlg" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <h3 id="x-title">Ausgabe eintragen</h3>
+  <p class="sub" id="x-sub"></p>
+  <div class="seg" id="x-car"></div>
+  <div class="fgroup"><label>Kategorie</label><div class="chips" id="x-cat"></div></div>
+  <div class="fields fgroup">
+    <div><label for="x-amount">Betrag (€)</label><input id="x-amount" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
+    <div><label for="x-date">Datum</label><input id="x-date" type="date"></div>
+  </div>
+  <div id="x-tank">
+    <div class="fields fgroup">
+      <div><label for="x-km">km-Stand</label><input id="x-km" type="text" inputmode="numeric" autocomplete="off"></div>
+      <div><label for="x-liter">Liter (optional)</label><input id="x-liter" type="text" inputmode="decimal" autocomplete="off" placeholder="–"></div>
+    </div>
+    <label class="check"><input type="checkbox" id="x-full" checked> Vollgetankt</label>
+  </div>
+  <div class="fgroup"><label>Bezahlt von</label><div class="seg" id="x-payer"></div></div>
+  <div class="fgroup" id="x-split-wrap"><label>Aufteilung</label><div class="seg" id="x-split"></div></div>
+  <div class="fgroup"><label for="x-note">Notiz (optional)</label><input id="x-note" class="small" type="text" autocomplete="off" maxlength="300" placeholder="z. B. Pickerl 2026"></div>
+  <div class="preview" id="x-preview"></div>
+  <div class="msg" id="x-msg"></div>
+  <div class="row">
+    <button class="btn ghost" onclick="closeExp()">Abbrechen</button>
+    <button class="btn primary" id="x-ok" onclick="saveExp()">Speichern</button>
+  </div>
+  <button class="linkbtn" id="x-del" onclick="deleteExp()"><span data-i="trash"></span>Buchung löschen</button>
+</div>
 <div class="dialog" id="dialog" role="dialog" aria-modal="true">
   <div class="grab"></div>
   <h3 id="d-title"></h3>
@@ -285,19 +389,47 @@ function apiPost(body) {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.1 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#', cars: [
+var MOCK = { ok: true, version: '2.2 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+  households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
 ]};
 function mock(b) {
   return new Promise(function (res) { setTimeout(function () {
     if (b.action === 'all') return res(JSON.parse(JSON.stringify(MOCK)));
+    if (b.action === 'expenses') return res(mockExp());
+    if (/Expense$/.test(b.action)) return res(mockExpAction(b));
     var c = MOCK.cars.filter(function (x) { return x.sheet === b.sheet; })[0];
     if (b.action === 'start') { c.open = true; c.startKM = +b.startKM; c.lastKM = +b.startKM; c.driver = b.driver; c.date = 'heute';
       return res({ ok: true, mode: 'started', start: c.startKM, cars: MOCK.cars }); }
     var was = c.open; c.open = false; c.startKM = +b.startKM; c.endKM = +b.endKM; c.distance = b.endKM - b.startKM; c.lastKM = +b.endKM; c.driver = b.driver; c.date = 'heute';
     res({ ok: true, mode: was ? 'closed' : 'direct', start: c.startKM, end: c.endKM, distance: c.distance, cars: MOCK.cars });
   }, 350); });
+}
+
+var MOCKX = [
+  { id: 'D3', date: '2026-01-05', car: 'Julia Brettner', cat: 'Tanken', amount: 40, payer: 'TM', split: 'km', km: 50020, full: false, note: '', status: 'offen' },
+  { id: 'D2', date: '2026-01-02', car: 'Schwitzkarre', cat: 'Versicherung', amount: 93.02, payer: 'PK', split: '50:50', note: 'Oktober', status: 'offen' },
+  { id: 'D1', date: '2025-12-20', car: 'Julia Brettner', cat: 'Tanken', amount: 98.5, payer: 'PK', split: 'fix', fixShare: 0.62, km: 49800, full: true, note: 'Altdaten', status: 'abgerechnet' }
+];
+function mockExp() {
+  var tw = { from: 49800, to: 50042, pk: 150, tm: 92 };
+  var list = MOCKX.map(function (e) {
+    e = JSON.parse(JSON.stringify(e));
+    e.share = e.split === 'km' ? tw.pk / (tw.pk + tw.tm) : e.split === 'PK' ? 1 : e.split === 'TM' ? 0 : e.split === 'fix' ? e.fixShare : 0.5;
+    e.provisional = e.split === 'km' && !e.full; if (e.split === 'km') e.window = tw;
+    e.balance = Math.round((e.payer === 'PK' ? e.amount * (1 - e.share) : -e.amount * e.share) * 100) / 100;
+    e.createdBy = 'Anna'; return e;
+  }).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
+  var saldo = list.filter(function (e) { return e.status !== 'abgerechnet'; }).reduce(function (a, e) { return a + e.balance; }, 0);
+  return { ok: true, expenses: list, saldo: Math.round(saldo * 100) / 100, saldoProvisional: list.some(function (e) { return e.provisional && e.status !== 'abgerechnet'; }),
+           tankWindow: tw, categories: { 'Julia Brettner': ['Tanken', 'Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges'], 'Schwitzkarre': ['Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges'] } };
+}
+function mockExpAction(b) {
+  if (b.action === 'addExpense') MOCKX.push(Object.assign({ id: 'D' + Date.now(), status: 'offen' }, b.expense));
+  if (b.action === 'updateExpense') Object.assign(MOCKX.filter(function (e) { return e.id === b.id; })[0], b.expense);
+  if (b.action === 'deleteExpense') MOCKX = MOCKX.filter(function (e) { return e.id !== b.id; });
+  return mockExp();
 }
 
 /* ---------- App ---------- */
@@ -316,6 +448,14 @@ var P = {
   check:    '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
   alert:    '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
   chevron:  '<path d="m6 9 6 6 6-6"/>',
+  fuel:     '<line x1="3" x2="15" y1="22" y2="22"/><line x1="4" x2="14" y1="9" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 2 2a2 2 0 0 0 2-2V9.83a2 2 0 0 0-.59-1.42L18 5"/>',
+  shield:   '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+  wrench:   '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  tire:     '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M12 2v6"/><path d="M12 16v6"/><path d="M2 12h6"/><path d="M16 12h6"/>',
+  box:      '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/>',
+  receipt:  '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  trash:    '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  arrow:    '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
   pin:      '<path d="M20 10c0 4.99-5.54 10.19-7.4 11.8a1 1 0 0 1-1.2 0C9.54 20.19 4 14.99 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>'
 };
 function ic(name, cls) {
@@ -329,7 +469,7 @@ function batIcon(soc) {
 var ICON = { 'Julia Brettner': ic('van', 'x'), 'Schwitzkarre': ic('car', 'x') + '<span class="bolt">' + ic('zap', 'x') + '</span>' };
 document.querySelectorAll('[data-i]').forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-i')); });
 var SUB  = { 'Julia Brettner': 'VW T5', 'Schwitzkarre': 'MG5 Elektro' };
-var NEWS_KEY = 'fb-news-2.1';
+var NEWS_KEY = 'fb-news-2.2';
 
 function $(id) { return document.getElementById(id); }
 function fmt(n) { return n == null || isNaN(n) ? '–' : Number(n).toLocaleString('de-AT'); }
@@ -390,7 +530,9 @@ function render() {
       + '<div class="car-head"><div class="car-icon">' + (ICON[c.sheet] || ic('car', 'x')) + '</div>'
       + '<div class="car-title"><h2>' + esc(c.label) + '</h2><small>' + (SUB[c.sheet] || '') + '</small></div>' + pill + '</div>'
       + '<div class="odo"><div class="km">' + fmt(c.lastKM) + '<span>km</span></div><div class="last">' + last + '</div></div>'
-      + bat + actions + '</div>';
+      + bat + actions
+      + (c.sheet === 'Julia Brettner' ? '<div class="actions single extra"><button class="btn ghost small" onclick="openExp({car:\'Julia Brettner\',cat:\'Tanken\'})">' + ic('fuel') + 'Tanken eintragen</button></div>' : '')
+      + '</div>';
   }).join('');
 }
 
@@ -465,6 +607,183 @@ function submitDialog() {
   });
 }
 
+/* ---------- Ansicht wechseln ---------- */
+var VIEW = 'trips';
+function showView(v) {
+  VIEW = v; sset('fb-view', v);
+  $('view-trips').hidden = v !== 'trips'; $('view-exp').hidden = v !== 'exp';
+  $('tab-trips').classList.toggle('on', v === 'trips'); $('tab-exp').classList.toggle('on', v === 'exp');
+  if (v === 'exp') loadExp();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- Ausgaben ---------- */
+var EXP = null, XF = null, SHOW_DONE = false;
+var CAT_ICON = { Tanken: 'fuel', Versicherung: 'shield', Service: 'wrench', Reifen: 'tire', Schaden: 'alert', Sonstiges: 'box', Laden: 'zap' };
+var CAR_SHORT = { 'Schwitzkarre': 'MG5', 'Julia Brettner': 'T5' };
+function eur(n) { return Number(n || 0).toLocaleString('de-AT', { style: 'currency', currency: 'EUR' }); }
+function dnum(v) { var s = String(v == null ? '' : v).replace(/\s|€/g, ''); if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.'); var n = parseFloat(s); return isNaN(n) ? null : n; }
+function hhLabel(h) { return (STATE.hhLabels && STATE.hhLabels[h]) || h; }
+function myHH() { return (STATE.households && STATE.households[ME]) || 'PK'; }
+function pct(x) { return Math.round(x * 100) + ' %'; }
+function dDE(iso) { var p = String(iso).split('-'); return p.length === 3 ? p[2] + '.' + p[1] + '.' + p[0] : iso; }
+function todayISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+
+function apiGetExp() {
+  if (DEMO) return mock({ action: 'expenses' });
+  return fetch(API_URL + '?action=expenses&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap);
+}
+function loadExp() {
+  if (!KEY && !DEMO) return;
+  apiGetExp().then(function (d) { EXP = d; renderExp(); })
+    .catch(function (e) { toast(e.message || String(e), true); });
+}
+
+function renderExp() {
+  if (!EXP) return;
+  var s = EXP.saldo, el = $('saldo');
+  var who = s > 0.004 ? hhLabel('TM') + ' ' + ic('arrow') + ' ' + hhLabel('PK')
+          : s < -0.004 ? hhLabel('PK') + ' ' + ic('arrow') + ' ' + hhLabel('TM') : 'Alles ausgeglichen';
+  el.innerHTML = '<div class="lbl">Offener Saldo</div>'
+    + '<div class="amt">' + eur(Math.abs(s)) + '</div>'
+    + '<div class="who">' + who + '</div>'
+    + (EXP.saldoProvisional ? '<div class="hint">Enthält vorläufige Tankbeträge – fix ab der nächsten Volltankung.</div>' : '')
+    + '<button class="btn primary" onclick="openExp()">' + ic('plus') + 'Ausgabe eintragen</button>';
+
+  var open = EXP.expenses.filter(function (e) { return e.status !== 'abgerechnet'; });
+  var done = EXP.expenses.filter(function (e) { return e.status === 'abgerechnet'; });
+  var html = '<div class="list-h"><span>Offen · ' + open.length + '</span></div>'
+    + (open.length ? '<div class="xlist">' + open.map(xItem).join('') + '</div>' : '<div class="xlist"><div class="empty">Keine offenen Ausgaben 🎉</div></div>')
+    + '<div class="list-h"><span>Abgerechnet · ' + done.length + '</span><button onclick="SHOW_DONE=!SHOW_DONE;renderExp()">' + (SHOW_DONE ? 'ausblenden' : 'anzeigen') + '</button></div>'
+    + (SHOW_DONE && done.length ? '<div class="xlist">' + done.map(xItem).join('') + '</div>' : '');
+  $('xlists').innerHTML = html;
+}
+function xItem(e) {
+  var title = esc(e.cat) + ' · ' + (CAR_SHORT[e.car] || esc(e.car));
+  var sub = dDE(e.date) + ' · bezahlt ' + e.payer + (e.note ? ' · ' + esc(e.note) : '');
+  var sh = (e.provisional ? '<span class="tag">vorläufig</span> ' : '') + 'PK ' + pct(e.share);
+  return '<div class="xi" onclick="openExp(null,\'' + esc(e.id) + '\')"><div class="t ' + (e.car === 'Schwitzkarre' ? 'Schwitzkarre' : 'Julia') + '">' + ic(CAT_ICON[e.cat] || 'box') + '</div>'
+    + '<div class="m"><b>' + title + '</b><span>' + sub + '</span></div>'
+    + '<div class="r"><b>' + eur(e.amount) + '</b><span>' + sh + '</span></div></div>';
+}
+
+/* Formular */
+function openExp(preset, id) {
+  if (!ME) return openPicker(true);
+  if (!EXP) { loadExp(); toast('Lade Ausgaben …', false, 'refresh'); setTimeout(function () { if (EXP) openExp(preset, id); }, 1500); return; }
+  var e = id ? EXP.expenses.filter(function (x) { return x.id === id; })[0] : null;
+  var julia = (STATE.cars || []).filter(function (c) { return c.sheet === 'Julia Brettner'; })[0];
+  preset = preset || {};
+  XF = e ? JSON.parse(JSON.stringify(e)) : {
+    car: preset.car || 'Julia Brettner', cat: preset.cat || '', amount: null, date: todayISO(),
+    km: julia ? julia.lastKM : null, liter: null, full: true, payer: myHH(), split: '', note: ''
+  };
+  XF.isNew = !e; XF.locked = !!(e && e.status === 'abgerechnet');
+  if (!XF.cat) XF.cat = XF.car === 'Julia Brettner' ? 'Tanken' : 'Versicherung';
+  if (!XF.split) XF.split = XF.cat === 'Tanken' ? 'km' : '50:50';
+  $('x-title').textContent = XF.isNew ? 'Ausgabe eintragen' : (XF.locked ? 'Ausgabe (abgerechnet)' : 'Ausgabe bearbeiten');
+  $('x-sub').textContent = XF.isNew ? '' : 'Erfasst von ' + (e.createdBy || '–') + (e.changedBy ? ' · zuletzt geändert von ' + e.changedBy + (e.changedAt ? ' (' + e.changedAt + ')' : '') : '');
+  $('x-amount').value = XF.amount != null ? String(XF.amount).replace('.', ',') : '';
+  $('x-date').value = XF.date; $('x-km').value = XF.km != null ? XF.km : '';
+  $('x-liter').value = XF.liter != null ? String(XF.liter).replace('.', ',') : '';
+  $('x-full').checked = XF.full !== false; $('x-note').value = XF.note || '';
+  $('x-del').style.display = (!XF.isNew && !XF.locked) ? '' : 'none';
+  $('x-ok').style.display = XF.locked ? 'none' : '';
+  ['x-amount', 'x-date', 'x-km', 'x-liter', 'x-full', 'x-note'].forEach(function (k) { $(k).disabled = XF.locked; });
+  $('x-msg').className = 'msg'; $('x-ok').disabled = false; $('x-ok').textContent = 'Speichern';
+  renderXF();
+  $('backdrop').classList.add('show'); $('xdlg').classList.add('show');
+  if (XF.isNew) setTimeout(function () { $('x-amount').focus(); }, 280);
+}
+function closeExp() { $('xdlg').classList.remove('show'); if (!DLG && !$('picker').classList.contains('show')) $('backdrop').classList.remove('show'); XF = null; }
+
+function segHTML(items, cur, fn) {
+  return items.map(function (it) {
+    return '<button type="button" class="' + (it[0] === cur ? 'on' : '') + '" ' + (XF.locked ? 'disabled' : '') + ' onclick="' + fn + '(\'' + it[0] + '\')">' + it[1] + '</button>';
+  }).join('');
+}
+function renderXF() {
+  var cats = (EXP.categories && EXP.categories[XF.car]) || [];
+  if (XF.cat === 'Laden' || cats.indexOf(XF.cat) < 0 && !XF.isNew) cats = cats.concat([XF.cat]);   // Altdaten
+  $('x-car').innerHTML = segHTML([['Schwitzkarre', 'Schwitzkarre'], ['Julia Brettner', 'Julia Brettner']], XF.car, 'setCar');
+  $('x-cat').innerHTML = cats.filter(function (c, i, a) { return a.indexOf(c) === i; }).map(function (c) {
+    return '<button type="button" class="' + (c === XF.cat ? 'on' : '') + '" ' + (XF.locked ? 'disabled' : '') + ' onclick="setCat(\'' + c + '\')">' + ic(CAT_ICON[c] || 'box') + c + '</button>';
+  }).join('');
+  $('x-payer').innerHTML = segHTML([['PK', esc(hhLabel('PK'))], ['TM', esc(hhLabel('TM'))]], XF.payer, 'setPayer');
+  var tank = XF.split === 'km';
+  $('x-tank').style.display = XF.cat === 'Tanken' ? '' : 'none';
+  $('x-split-wrap').style.display = (tank || XF.split === 'fix') ? 'none' : '';
+  $('x-split').innerHTML = segHTML([['50:50', '50 : 50'], ['PK', 'nur PK'], ['TM', 'nur TM']], XF.split, 'setSplit');
+  updPreview();
+}
+function setCar(c) { XF.car = c; var cats = EXP.categories[c] || []; if (cats.indexOf(XF.cat) < 0) setCat(cats[0]); else renderXF(); }
+function setCat(c) {
+  XF.cat = c;
+  if (c === 'Tanken') XF.split = 'km';
+  else if (XF.split === 'km' || XF.split === '') XF.split = c === 'Schaden' ? XF.payer : '50:50';
+  renderXF();
+}
+function setPayer(p) { XF.payer = p; renderXF(); }
+function setSplit(s) { XF.split = s; renderXF(); }
+
+function readXF() {
+  XF.amount = dnum($('x-amount').value); XF.date = $('x-date').value;
+  XF.km = num($('x-km').value); XF.liter = dnum($('x-liter').value);
+  XF.full = $('x-full').checked; XF.note = $('x-note').value.trim();
+}
+function updPreview() {
+  if (!XF) return;
+  readXF();
+  var a = XF.amount, share = null, info = '', prov = false;
+  if (XF.split === '50:50') { share = 0.5; info = 'Fixkosten: je zur Hälfte'; }
+  else if (XF.split === 'PK') { share = 1; info = 'Trägt ' + hhLabel('PK') + ' allein'; }
+  else if (XF.split === 'TM') { share = 0; info = 'Trägt ' + hhLabel('TM') + ' allein'; }
+  else if (XF.split === 'fix') { share = XF.share; info = 'Fixer Anteil aus den Altdaten'; }
+  else if (XF.split === 'km') {
+    var w = (!XF.isNew && XF.window) ? XF.window : EXP.tankWindow;
+    if (w && w.pk + w.tm > 0) {
+      share = w.pk / (w.pk + w.tm);
+      info = 'Nach km seit letzter Volltankung (km ' + fmt(w.from) + '–' + fmt(w.to) + '): '
+           + hhLabel('PK') + ' ' + fmt(w.pk) + ' km · ' + hhLabel('TM') + ' ' + fmt(w.tm) + ' km';
+    } else { share = 0.5; info = 'Seit der letzten Volltankung noch keine km – vorerst 50 : 50'; }
+    prov = !XF.full || (!XF.isNew && XF.provisional);
+  }
+  var html = '';
+  if (share != null) {
+    html += '<div class="bar2"><i style="width:' + (share * 100) + '%"></i><i style="width:' + ((1 - share) * 100) + '%"></i></div>'
+          + '<div>' + hhLabel('PK') + ' <b>' + pct(share) + '</b> · ' + hhLabel('TM') + ' <b>' + pct(1 - share) + '</b></div>';
+    if (a > 0) {
+      var bal = XF.payer === 'PK' ? a * (1 - share) : -a * share;
+      html += '<div style="margin-top:6px">' + (Math.abs(bal) < 0.005 ? 'Kein Ausgleich nötig'
+            : (bal > 0 ? hhLabel('TM') + ' schuldet ' + hhLabel('PK') : hhLabel('PK') + ' schuldet ' + hhLabel('TM')) + ' <b>' + eur(Math.abs(bal)) + '</b>') + '</div>';
+    }
+    html += '<div style="color:var(--muted);font-size:13px;margin-top:6px">' + esc(info) + (prov ? ' · <span class="tag">vorläufig bis zur nächsten Volltankung</span>' : '') + '</div>';
+  }
+  $('x-preview').innerHTML = html;
+}
+['x-amount', 'x-km', 'x-full', 'x-date', 'x-liter', 'x-note'].forEach(function (id) { $(id).addEventListener('input', updPreview); $(id).addEventListener('change', updPreview); });
+
+function saveExp() {
+  readXF();
+  var err = !(XF.amount > 0) ? 'Bitte einen Betrag eingeben.'
+          : !XF.date ? 'Bitte ein Datum wählen.'
+          : (XF.split === 'km' && !XF.km) ? 'Bitte den km-Stand beim Tanken eingeben.' : null;
+  if (err) { $('x-msg').className = 'msg err'; $('x-msg').textContent = err; return; }
+  var body = { car: XF.car, cat: XF.cat, amount: XF.amount, date: XF.date, payer: XF.payer, split: XF.split, note: XF.note };
+  if (XF.cat === 'Tanken') { body.km = XF.km; body.liter = XF.liter; body.full = XF.full; }
+  $('x-ok').disabled = true; $('x-ok').textContent = 'Speichere …';
+  var req = XF.isNew ? apiPost({ action: 'addExpense', expense: body }) : apiPost({ action: 'updateExpense', id: XF.id, expense: body });
+  var isNew = XF.isNew;
+  req.then(function (d) { EXP = d; closeExp(); renderExp(); if (VIEW !== 'exp') showView('exp'); toast(isNew ? 'Ausgabe gespeichert' : 'Änderung gespeichert', false, 'check'); })
+     .catch(function (e) { $('x-ok').disabled = false; $('x-ok').textContent = 'Nochmal versuchen'; $('x-msg').className = 'msg err'; $('x-msg').textContent = e.message || String(e); });
+}
+function deleteExp() {
+  if (!XF || !confirm('Diese Buchung wirklich löschen?')) return;
+  apiPost({ action: 'deleteExpense', id: XF.id }).then(function (d) { EXP = d; closeExp(); renderExp(); toast('Buchung gelöscht', false, 'check'); })
+    .catch(function (e) { $('x-msg').className = 'msg err'; $('x-msg').textContent = e.message || String(e); });
+}
+
 /* ---------- Toast / News ---------- */
 var toastT;
 function toast(t, isErr, icon) {
@@ -476,8 +795,9 @@ if (!sget(NEWS_KEY)) $('news').hidden = false;
 
 renderMe();
 load();
-setInterval(function () { if (!document.hidden && !DLG) load(); }, 60000);   // alle 60 s still aktualisieren
-document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG) load(); });
+setInterval(function () { if (!document.hidden && !DLG && !XF) { load(); if (VIEW === 'exp') loadExp(); } }, 60000);   // alle 60 s still aktualisieren
+document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG && !XF) { load(); if (VIEW === 'exp') loadExp(); } });
+if (sget('fb-view') === 'exp') showView('exp');
 </script>
 </body>
 </html>
