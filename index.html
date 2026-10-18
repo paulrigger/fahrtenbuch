@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Fahrtenbuch</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Fahrtenbuch">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#cce6f4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#175676" media="(prefers-color-scheme: dark)">
+<style>
+  :root {
+    /* Palette – ausschließlich diese 5 Farben (+ deren Transparenzen) */
+    --classic-crimson: #d62839;
+    --rosewood:        #ba324f;
+    --baltic-blue:     #175676;
+    --turquoise-surf:  #4ba3c3;
+    --pale-sky:        #cce6f4;
+
+    /* Rollen */
+    --bg: var(--baltic-blue);
+    --card: rgba(6,28,40,.38);              /* dunkle Karten für Kontrast */
+    --raised: rgba(255,255,255,.12);
+    --line: rgba(255,255,255,.12);
+    --ink: #ffffff;                         /* Text: weiß */
+    --muted: rgba(255,255,255,.78);
+    --primary: var(--pale-sky);
+    --primary-ink: #0b0f14;                 /* Text auf hellen Flächen: schwarz */
+    --ok: var(--turquoise-surf);
+    --busy: var(--classic-crimson);
+    --stop: var(--classic-crimson);
+    --energy: var(--turquoise-surf);
+    --bolt: var(--pale-sky);
+    --warn-bg: rgba(186,50,79,.45);  --warn-ink: #ffffff;
+    --err-bg: rgba(214,40,57,.5);    --err-ink: #ffffff;
+    --shadow: none;
+    --page: radial-gradient(120% 60% at 100% 0%, rgba(75,163,195,.35), transparent 60%), var(--baltic-blue);
+    --sheet-bg: var(--baltic-blue);
+    --bolt-bg: var(--pale-sky); --bolt-ink: var(--baltic-blue);
+    color-scheme: dark;
+  }
+  /* Hell-Modus: folgt der Systemeinstellung des Handys */
+  @media (prefers-color-scheme: light) {
+    :root {
+      --page: radial-gradient(120% 60% at 100% 0%, rgba(75,163,195,.28), transparent 60%), var(--pale-sky);
+      --sheet-bg: #ffffff;
+      --card: #ffffff;
+      --raised: rgba(23,86,118,.08);
+      --line: rgba(23,86,118,.14);
+      --ink: #0b0f14;
+      --muted: rgba(11,15,20,.62);
+      --primary: var(--baltic-blue);
+      --primary-ink: #ffffff;
+      --energy: var(--turquoise-surf);
+      --bolt-bg: var(--baltic-blue); --bolt-ink: #ffffff;
+      --warn-bg: rgba(186,50,79,.10); --warn-ink: var(--rosewood);
+      --err-bg: rgba(214,40,57,.12);  --err-ink: var(--classic-crimson);
+      --shadow: 0 1px 2px rgba(23,86,118,.08), 0 8px 24px rgba(23,86,118,.10);
+      color-scheme: light;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); }
+  html { background: var(--page); }
+  body { background: transparent; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: var(--ink);
+    min-height: 100dvh;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+    font-size: 16px;
+  }
+  .wrap { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 4px 2px 2px; }
+  header h1 { font-size: 26px; letter-spacing: -.02em; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 11px; font-weight: 700; letter-spacing: .06em; padding: 3px 7px; border-radius: 999px;
+           background: linear-gradient(135deg, var(--classic-crimson), var(--rosewood)); color: #ffffff; }
+  .me-btn { border: 0; background: var(--raised); color: var(--ink); font: inherit; font-size: 14px; font-weight: 600;
+            padding: 9px 12px; border-radius: 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+  .me-btn .ic { width: 16px; height: 16px; opacity: .8; }
+  .picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 4px; }
+  .picker-grid .btn { padding: 18px 10px; font-size: 18px; }
+  .picker-grid .btn.sel { outline: 3px solid var(--turquoise-surf); outline-offset: 2px; }
+  .notice { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 22px 18px; text-align: center; line-height: 1.5; }
+  .notice b { display: block; font-size: 18px; margin-bottom: 6px; }
+  .notice span { color: var(--muted); font-size: 15px; }
+  .icon-btn { border: 0; background: var(--card); color: var(--ink); width: 38px; height: 38px; border-radius: 12px;
+              box-shadow: var(--shadow); font-size: 18px; cursor: pointer; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .news { background: var(--card); border-radius: 16px; padding: 14px 16px 14px 20px; box-shadow: var(--shadow);
+          position: relative; font-size: 14px; overflow: hidden; }
+  .news::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px;
+                  background: linear-gradient(var(--turquoise-surf), var(--classic-crimson)); }
+  .news b { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 15px; }
+  .news b .ic { color: var(--turquoise-surf); }
+  .news ul { margin: 0; padding-left: 18px; color: var(--muted); line-height: 1.5; }
+  .news .x { position: absolute; top: 10px; right: 10px; border: 0; background: none; color: var(--muted); cursor: pointer; padding: 4px; display: grid; }
+  .news .x svg { width: 18px; height: 18px; }
+
+  .car { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--shadow); overflow: hidden; }
+  .car-head { display: flex; align-items: center; gap: 12px; padding: 16px 16px 12px; }
+  .car-icon { width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; flex: none; color: #ffffff; position: relative; }
+  .car-icon svg { width: 26px; height: 26px; }
+  .car[data-car="Julia Brettner"] .car-icon { background: linear-gradient(145deg, var(--classic-crimson), var(--rosewood)); }
+  .car[data-car="Schwitzkarre"] .car-icon { background: linear-gradient(145deg, var(--turquoise-surf), var(--baltic-blue)); }
+  .car-icon { border: 1px solid var(--line); }
+  .car-icon .bolt { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%;
+                    background: var(--bolt-bg); color: var(--bolt-ink); display: grid; place-items: center; border: 2px solid var(--sheet-bg); }
+  .car-icon .bolt svg { width: 11px; height: 11px; }
+  .ic { width: 1.15em; height: 1.15em; vertical-align: -0.2em; flex: none; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; white-space: nowrap; }
+  .btn .ic { width: 18px; height: 18px; }
+  .actions .btn { padding: 15px 8px; font-size: 15.5px; }
+  .toast span { text-align: left; }
+  .icon-btn { display: grid; place-items: center; }
+  .icon-btn svg { width: 19px; height: 19px; }
+  .icon-btn.spin svg { animation: spin .8s linear infinite; }
+  .bat { width: 26px; height: 14px; vertical-align: -2px; }
+  .car-title { flex: 1; min-width: 0; }
+  .car-title h2 { margin: 0; font-size: 19px; letter-spacing: -.01em; }
+  .car-title small { color: var(--muted); font-size: 13px; }
+  .pill { font-size: 12.5px; font-weight: 600; padding: 5px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .pill i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .pill.home, .pill.busy { color: var(--ink); background: var(--raised); }
+  .pill.home i { background: var(--turquoise-surf); }
+  .pill.busy i { background: var(--classic-crimson); }
+  .pill.busy i { animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .25; } }
+
+  .odo { display: flex; align-items: baseline; justify-content: space-between; padding: 0 16px 12px; gap: 12px; }
+  .odo .km { font-variant-numeric: tabular-nums; font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+  .odo .km span { font-size: 15px; color: var(--muted); font-weight: 500; margin-left: 3px; }
+  .odo .last { font-size: 13px; color: var(--muted); text-align: right; line-height: 1.4; }
+
+  .battery { padding: 0 16px 14px; }
+  .bar { height: 10px; border-radius: 999px; background: var(--raised); overflow: hidden; }
+  .bar > div { height: 100%; border-radius: 999px; background: var(--energy); transition: width .6s ease; }
+  .bar > div.low { background: var(--busy); }
+  .battery-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .battery-meta b { color: var(--ink); }
+
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px 16px 16px; border-top: 1px solid var(--line); }
+  .actions.single { grid-template-columns: 1fr; }
+  .btn { border: 0; border-radius: 14px; padding: 15px 12px; font-size: 16px; font-weight: 650; cursor: pointer;
+         font-family: inherit; transition: transform .08s, opacity .2s; }
+  .btn:active { transform: scale(.97); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+  .btn.primary { background: var(--primary); color: var(--primary-ink); }
+  .btn.stop { background: var(--stop); color: #ffffff; }
+  .btn.ghost { background: var(--raised); color: var(--ink); }
+
+  .sheet-link { display: flex; align-items: center; justify-content: center; gap: 6px; color: var(--muted); font-size: 14px; padding: 10px; text-decoration: none; }
+  .version { text-align: center; font-size: 12px; color: var(--muted); opacity: .7; }
+
+  .skeleton { height: 230px; border-radius: 20px; background: linear-gradient(90deg, var(--card), var(--line), var(--card));
+              background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* Bottom-Sheet Dialog */
+  .backdrop { position: fixed; inset: 0; background: rgba(23,86,118,.7); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
+  .backdrop.show { opacity: 1; pointer-events: auto; }
+  .dialog { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 520px; background: linear-gradient(var(--card), var(--card)), var(--sheet-bg); border-top: 1px solid var(--line);
+            border-radius: 24px 24px 0 0; padding: 10px 20px max(20px, env(safe-area-inset-bottom));
+            transform: translateY(105%); transition: transform .25s cubic-bezier(.2,.8,.2,1); z-index: 11; }
+  .dialog.show { transform: none; }
+  .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 14px; }
+  .dialog h3 { margin: 0 0 4px; font-size: 20px; }
+  .dialog .sub { color: var(--muted); font-size: 14px; margin: 0 0 16px; }
+  .fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fields.single { grid-template-columns: 1fr; }
+  label { font-size: 13px; color: var(--muted); font-weight: 600; display: block; margin-bottom: 6px; }
+  input { width: 100%; font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; padding: 12px 14px;
+          border-radius: 14px; border: 2px solid var(--line); background: var(--raised); color: var(--ink); font-family: inherit; outline: none; }
+  input:focus { border-color: var(--turquoise-surf); }
+  .diff { text-align: center; margin: 18px 0 6px; }
+  .diff .n { font-size: 44px; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+  .diff .n span { font-size: 20px; color: var(--muted); font-weight: 600; margin-left: 4px; }
+  .diff .l { font-size: 13px; color: var(--muted); }
+  .msg { font-size: 14px; border-radius: 12px; padding: 10px 12px; margin-top: 12px; display: none; line-height: 1.4; }
+  .msg.warn { display: block; background: var(--warn-bg); color: var(--warn-ink); }
+  .msg.err  { display: block; background: var(--err-bg);  color: var(--err-ink); }
+  .dialog .row { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 16px; }
+
+  .toast { position: fixed; left: 50%; top: max(16px, env(safe-area-inset-top)); transform: translate(-50%, calc(-100% - 60px)); visibility: hidden;
+           background: var(--primary); color: var(--primary-ink); padding: 12px 16px; border-radius: 14px; font-size: 15px; font-weight: 600;
+           display: flex; align-items: center; gap: 8px; transition: transform .3s cubic-bezier(.2,.8,.2,1), visibility .3s; z-index: 20; max-width: 90vw; text-align: center; }
+  .toast.show { transform: translate(-50%, 0); visibility: visible; }
+  .toast.err { background: var(--classic-crimson); color: #ffffff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Fahrtenbuch <span class="badge">2.1</span></h1>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <button class="me-btn" id="me" onclick="openPicker()"></button>
+      <button class="icon-btn" id="refresh" aria-label="Aktualisieren" onclick="load()" data-i="refresh"></button>
+    </div>
+  </header>
+
+  <div class="news" id="news" hidden>
+    <button class="x" aria-label="Schließen" onclick="hideNews()" data-i="x"></button>
+    <b><span data-i="sparkles"></span>Neu in Version 2.1</b>
+    <ul>
+      <li><b style="display:inline">Fahrt eintragen</b>: Start &amp; Ende in einem Schritt – ohne vorher zu starten</li>
+      <li>Gefahrene km werden live berechnet</li>
+      <li>Prüft falsche oder lückenhafte km-Stände</li>
+      <li>Neues Design mit neuen Icons, passt jetzt aufs Handy</li>
+      <li><b style="display:inline">Ohne Google-Banner</b> und als App installierbar: Teilen → „Zum Home-Bildschirm"</li>
+    </ul>
+  </div>
+
+  <div id="cars"><div class="skeleton"></div><div class="skeleton" style="margin-top:14px"></div></div>
+
+  <a class="sheet-link" id="sheet-link" href="#" target="_blank" hidden><span data-i="sheet"></span>Google Sheet öffnen</a>
+  <div class="version" id="version"></div>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker()"></div>
+<div class="dialog" id="dialog" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <h3 id="d-title"></h3>
+  <p class="sub" id="d-sub"></p>
+  <div class="fields" id="d-fields">
+    <div><label for="d-start">Start-km</label><input id="d-start" type="text" inputmode="numeric" autocomplete="off"></div>
+    <div id="d-end-wrap"><label for="d-end">End-km</label><input id="d-end" type="text" inputmode="numeric" autocomplete="off" placeholder="—"></div>
+  </div>
+  <div class="diff" id="d-diff"><div class="n" id="d-n">–<span>km</span></div><div class="l">gefahren</div></div>
+  <div class="msg" id="d-msg"></div>
+  <div class="row">
+    <button class="btn ghost" onclick="closeDialog()">Abbrechen</button>
+    <button class="btn primary" id="d-ok" onclick="submitDialog()">Bestätigen</button>
+  </div>
+</div>
+
+<div class="dialog" id="picker" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <h3>Wer fährt?</h3>
+  <p class="sub">Einmal auswählen – wird auf diesem Gerät gespeichert.</p>
+  <div class="picker-grid" id="picker-grid"></div>
+  <div class="row" style="grid-template-columns:1fr"><button class="btn ghost" id="picker-cancel" onclick="closePicker()">Abbrechen</button></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- Konfiguration ---------- */
+// Nach dem Bereitstellen des API-Projekts hier die /exec-URL eintragen:
+var API_URL = 'https://script.google.com/macros/s/HIER_DEPLOYMENT_ID_EINTRAGEN/exec';
+
+/* ---------- Speicher (robust, falls localStorage blockiert) ---------- */
+function sget(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function sset(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+var QS = new URLSearchParams(location.search);
+var KEY = QS.get('k') || sget('fb-key') || '';
+if (QS.get('k')) sset('fb-key', QS.get('k'));
+var ME = sget('fb-driver') || '';
+var DEMO = QS.has('demo') || API_URL.indexOf('HIER_') >= 0;
+
+/* ---------- API ---------- */
+function apiGet() {
+  if (DEMO) return mock({ action: 'all' });
+  return fetch(API_URL + '?action=all&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap);
+}
+function apiPost(body) {
+  body.key = KEY; body.driver = ME;
+  if (DEMO) return mock(body);
+  // text/plain vermeidet den CORS-Preflight, den Apps Script nicht beantwortet
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+    .then(function (r) { return r.json(); }).then(unwrap);
+}
+function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
+
+/* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
+var MOCK = { ok: true, version: '2.1 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#', cars: [
+  { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
+  { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
+]};
+function mock(b) {
+  return new Promise(function (res) { setTimeout(function () {
+    if (b.action === 'all') return res(JSON.parse(JSON.stringify(MOCK)));
+    var c = MOCK.cars.filter(function (x) { return x.sheet === b.sheet; })[0];
+    if (b.action === 'start') { c.open = true; c.startKM = +b.startKM; c.lastKM = +b.startKM; c.driver = b.driver; c.date = 'heute';
+      return res({ ok: true, mode: 'started', start: c.startKM, cars: MOCK.cars }); }
+    var was = c.open; c.open = false; c.startKM = +b.startKM; c.endKM = +b.endKM; c.distance = b.endKM - b.startKM; c.lastKM = +b.endKM; c.driver = b.driver; c.date = 'heute';
+    res({ ok: true, mode: was ? 'closed' : 'direct', start: c.startKM, end: c.endKM, distance: c.distance, cars: MOCK.cars });
+  }, 350); });
+}
+
+/* ---------- App ---------- */
+var STATE = { cars: [] }, DLG = null;
+var P = {
+  van:      '<path d="M8 6v6"/><path d="M15 6v6"/><path d="M2 12h19.6"/><path d="M18 18h3s.5-1.7.8-2.8c.1-.4.2-.8.2-1.2 0-.4-.1-.8-.2-1.2l-1.4-5C20.1 6.8 19.1 6 18 6H4a2 2 0 0 0-2 2v10h3"/><circle cx="7" cy="18" r="2"/><path d="M9 18h5"/><circle cx="16" cy="18" r="2"/>',
+  car:      '<path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/>',
+  zap:      '<path fill="currentColor" stroke="none" d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  refresh:  '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  x:        '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  sparkles: '<path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/>',
+  sheet:    '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 9v12"/>',
+  play:     '<path fill="currentColor" stroke="none" d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5z"/>',
+  plus:     '<path d="M5 12h14"/><path d="M12 5v14"/>',
+  flag:     '<path d="M4 22V4"/><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1"/>',
+  check:    '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  alert:    '<circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
+  chevron:  '<path d="m6 9 6 6 6-6"/>',
+  pin:      '<path d="M20 10c0 4.99-5.54 10.19-7.4 11.8a1 1 0 0 1-1.2 0C9.54 20.19 4 14.99 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>'
+};
+function ic(name, cls) {
+  return '<svg class="' + (cls || 'ic') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[name] + '</svg>';
+}
+function batIcon(soc) {
+  var w = Math.max(1, Math.min(16, 16 * soc / 100)), col = soc < 25 ? 'var(--busy)' : 'var(--energy)';
+  return '<svg class="bat" viewBox="0 0 26 14" aria-hidden="true"><rect x="1" y="1" width="21" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>'
+    + '<rect x="23.2" y="4.5" width="2" height="5" rx="1" fill="currentColor"/><rect x="3.2" y="3.2" width="' + w.toFixed(1) + '" height="7.6" rx="1.5" fill="' + col + '"/></svg>';
+}
+var ICON = { 'Julia Brettner': ic('van', 'x'), 'Schwitzkarre': ic('car', 'x') + '<span class="bolt">' + ic('zap', 'x') + '</span>' };
+document.querySelectorAll('[data-i]').forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-i')); });
+var SUB  = { 'Julia Brettner': 'VW T5', 'Schwitzkarre': 'MG5 Elektro' };
+var NEWS_KEY = 'fb-news-2.1';
+
+function $(id) { return document.getElementById(id); }
+function fmt(n) { return n == null || isNaN(n) ? '–' : Number(n).toLocaleString('de-AT'); }
+function num(v) { var n = parseInt(String(v).replace(/[^\d]/g, ''), 10); return isNaN(n) ? null : n; }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+function load() {
+  if (!KEY && !DEMO) {
+    $('cars').innerHTML = '<div class="notice"><b>Zugangslink fehlt</b><span>Bitte den Fahrtenbuch-Link aus der Gruppe einmal öffnen – danach merkt sich die App den Zugang.</span></div>';
+    return;
+  }
+  $('refresh').classList.add('spin');
+  apiGet().then(function (d) {
+    $('refresh').classList.remove('spin');
+    STATE = d; renderMe();
+    if (d.sheetUrl) { $('sheet-link').href = d.sheetUrl; $('sheet-link').hidden = false; }
+    $('version').textContent = 'Version ' + d.version;
+    render();
+    if (!ME) openPicker(true);
+  }).catch(function (e) {
+    $('refresh').classList.remove('spin');
+    toast(e.message || String(e), true);
+  });
+}
+
+/* ---------- Wer fährt ---------- */
+function renderMe() { $('me').innerHTML = (ME ? esc(ME) : 'Wer?') + ic('chevron'); }
+function openPicker(force) {
+  var names = STATE.drivers || [];
+  $('picker-grid').innerHTML = names.map(function (n) {
+    return '<button class="btn ' + (n === ME ? 'primary sel' : 'ghost') + '" onclick="pickDriver(\'' + esc(n) + '\')">' + esc(n) + '</button>';
+  }).join('');
+  $('picker-cancel').style.display = (force || !ME) ? 'none' : '';
+  $('backdrop').classList.add('show'); $('picker').classList.add('show');
+}
+function closePicker() { if (!ME) return; $('picker').classList.remove('show'); if (!DLG) $('backdrop').classList.remove('show'); }
+function pickDriver(n) { ME = n; sset('fb-driver', n); renderMe(); closePicker(); toast('Hallo ' + n + '!', false, 'check'); }
+
+function render() {
+  $('cars').innerHTML = STATE.cars.map(function (c, i) {
+    var pill = c.open
+      ? '<span class="pill busy"><i></i>Unterwegs</span>'
+      : '<span class="pill home"><i></i>Zuhause</span>';
+    var last = c.open
+      ? 'seit ' + esc(c.date) + '<br><b>' + esc(c.driver) + '</b> fährt'
+      : 'Letzte Fahrt ' + esc(c.date) + '<br>' + esc(c.driver) + ' · ' + fmt(c.distance) + ' km';
+    var bat = '';
+    if (c.soc != null && !isNaN(c.soc)) {
+      bat = '<div class="battery"><div class="bar"><div class="' + (c.soc < 25 ? 'low' : '') + '" style="width:' + Math.max(2, Math.min(100, c.soc)) + '%"></div></div>'
+          + '<div class="battery-meta"><span>' + batIcon(c.soc) + ' <b>' + fmt(Math.round(c.soc)) + ' %</b> · ' + fmt(c.range) + ' km Reichweite</span>'
+          + '<span>' + esc((c.socUpdated || '').split(',')[0]) + '</span></div></div>';
+    }
+    var actions = c.open
+      ? '<div class="actions single"><button class="btn stop" onclick="openDialog(' + i + ',\'end\')">' + ic('flag') + 'Fahrt beenden</button></div>'
+      : '<div class="actions"><button class="btn primary" onclick="openDialog(' + i + ',\'start\')">' + ic('play') + 'Fahrt starten</button>'
+        + '<button class="btn ghost" onclick="openDialog(' + i + ',\'direct\')">' + ic('plus') + 'Fahrt eintragen</button></div>';
+    return '<div class="car" data-car="' + esc(c.sheet) + '" style="margin-bottom:14px">'
+      + '<div class="car-head"><div class="car-icon">' + (ICON[c.sheet] || ic('car', 'x')) + '</div>'
+      + '<div class="car-title"><h2>' + esc(c.label) + '</h2><small>' + (SUB[c.sheet] || '') + '</small></div>' + pill + '</div>'
+      + '<div class="odo"><div class="km">' + fmt(c.lastKM) + '<span>km</span></div><div class="last">' + last + '</div></div>'
+      + bat + actions + '</div>';
+  }).join('');
+}
+
+/* ---------- Dialog ---------- */
+function openDialog(i, mode) {
+  if (!ME) return openPicker(true);
+  var c = STATE.cars[i];
+  DLG = { car: c, mode: mode };
+  $('dialog').dataset.car = c.sheet;
+  $('d-title').textContent = { start: 'Fahrt starten', end: 'Fahrt beenden', direct: 'Fahrt eintragen' }[mode];
+  $('d-sub').textContent = c.label + (mode === 'end' ? ' · gestartet von ' + c.driver : mode === 'direct' ? ' · Start und Ende in einem Schritt' : '');
+  $('d-start').value = c.open ? c.startKM : c.lastKM;
+  $('d-end').value = '';
+  var withEnd = mode !== 'start';
+  $('d-end-wrap').style.display = withEnd ? '' : 'none';
+  $('d-diff').style.display = withEnd ? '' : 'none';
+  $('d-fields').classList.toggle('single', !withEnd);
+  $('d-ok').textContent = { start: 'Fahrt starten', end: 'Fahrt beenden', direct: 'Fahrt eintragen' }[mode];
+  $('d-ok').className = 'btn ' + (mode === 'end' ? 'stop' : 'primary');
+  
+  validate();
+  $('backdrop').classList.add('show'); $('dialog').classList.add('show');
+  setTimeout(function () { (withEnd ? $('d-end') : $('d-start')).focus(); }, 260);
+}
+
+function closeDialog() { if (!$('picker').classList.contains('show')) $('backdrop').classList.remove('show'); $('dialog').classList.remove('show'); DLG = null; }
+
+function validate() {
+  if (!DLG) return false;
+  var c = DLG.car, s = num($('d-start').value), e = num($('d-end').value), msg = $('d-msg');
+  var err = null, warn = null;
+  var ref = c.open && DLG.mode === 'end' ? null : c.lastKM;   // Vergleichsbasis für Lücken
+
+  if (s == null) err = 'Bitte Start-km eingeben.';
+  else if (ref != null && s < ref) err = 'Start-km ist kleiner als der letzte Stand (' + fmt(ref) + ').';
+  else if (ref != null && s > ref) warn = 'Lücke von ' + fmt(s - ref) + ' km seit dem letzten Eintrag – hat jemand vergessen einzutragen?';
+
+  if (DLG.mode !== 'start') {
+    var d = (s != null && e != null) ? e - s : null;
+    $('d-n').innerHTML = (d == null ? '–' : fmt(d)) + '<span>km</span>';
+    $('d-n').style.color = d != null && d < 0 ? 'var(--classic-crimson)' : '';
+    if (!err && e == null) err = '';                       // leer: still deaktivieren
+    else if (!err && d < 0) err = 'End-km ist kleiner als Start-km.';
+    else if (!err && d > 3000) err = 'Mehr als 3.000 km – Tippfehler?';
+    else if (!err && d > 800) warn = (warn ? warn + ' ' : '') + 'Lange Fahrt (' + fmt(d) + ' km) – bitte kurz prüfen.';
+  }
+  msg.className = 'msg' + (err ? ' err' : warn ? ' warn' : '');
+  msg.textContent = err || warn || '';
+  $('d-ok').disabled = err !== null;
+  return err === null;
+}
+$('d-start').addEventListener('input', validate);
+$('d-end').addEventListener('input', validate);
+['d-start', 'd-end'].forEach(function (id) {
+  $(id).addEventListener('keydown', function (ev) { if (ev.key === 'Enter' && validate()) submitDialog(); });
+});
+
+function submitDialog() {
+  if (!validate()) return;
+  var d = DLG, s = num($('d-start').value), e = num($('d-end').value);
+  $('d-ok').disabled = true; $('d-ok').textContent = 'Speichere …';
+  var req = d.mode === 'start'
+    ? apiPost({ action: 'start', sheet: d.car.sheet, startKM: s })
+    : apiPost({ action: 'end', sheet: d.car.sheet, startKM: s, endKM: e });
+  req.then(function (r) {
+    closeDialog(); STATE.cars = r.cars; render();
+    if (r.mode === 'started') toast('Gute Fahrt! Start bei ' + fmt(r.start) + ' km', false, 'play');
+    else toast(fmt(r.distance) + ' km eingetragen' + (r.mode === 'direct' ? ' (direkt)' : ''), false, 'check');
+  }).catch(function (err) {
+    $('d-ok').disabled = false; $('d-ok').textContent = 'Nochmal versuchen';
+    $('d-msg').className = 'msg err'; $('d-msg').textContent = err.message || String(err);
+  });
+}
+
+/* ---------- Toast / News ---------- */
+var toastT;
+function toast(t, isErr, icon) {
+  var el = $('toast'); el.innerHTML = ic(icon || (isErr ? 'alert' : 'check')) + '<span>' + esc(t) + '</span>'; el.className = 'toast show' + (isErr ? ' err' : '');
+  clearTimeout(toastT); toastT = setTimeout(function () { el.className = 'toast' + (isErr ? ' err' : ''); }, 3200);
+}
+function hideNews() { $('news').hidden = true; sset(NEWS_KEY, '1'); }
+if (!sget(NEWS_KEY)) $('news').hidden = false;
+
+renderMe();
+load();
+setInterval(function () { if (!document.hidden && !DLG) load(); }, 60000);   // alle 60 s still aktualisieren
+document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG) load(); });
+</script>
+</body>
+</html>
