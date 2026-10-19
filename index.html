@@ -291,6 +291,14 @@
   .note2 { font-size: 12.5px; color: var(--muted); margin-top: 10px; line-height: 1.45; }
   details.tv { margin-top: 10px; font-size: 13px; color: var(--muted); }
   details.tv summary { cursor: pointer; color: var(--turquoise-surf); font-weight: 600; }
+  .mmenu { padding: 4px 16px; }
+  .mmenu .lrow { padding: 14px 0; }
+  .mmenu .lrow > .ic:first-child { width: 34px; height: 34px; padding: 7px; border-radius: 10px; background: var(--raised); color: var(--turquoise-surf); box-sizing: border-box; }
+  .backbtn { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: var(--turquoise-surf);
+             font: inherit; font-size: 16px; font-weight: 600; padding: 4px 0 10px; cursor: pointer; }
+  .backbtn .ic { width: 18px; height: 18px; transform: rotate(90deg); }
+  .backbtn[hidden], .msub[hidden] { display: none; }
+  .msub { margin-top: 0; }
   .carcost { padding: 12px 0 4px; border-top: 1px solid var(--line); }
   .carcost:first-of-type { border-top: 0; padding-top: 4px; }
   .cc-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 16px; }
@@ -432,10 +440,12 @@
   </section>
 
   <section id="view-misc" hidden>
-    <div class="card2" id="m-auf" style="margin-top:0"><div class="skeleton" style="height:160px"></div></div>
-    <div class="card2" id="m-strom"></div>
-    <div class="card2" id="m-siri" style="display:none"></div>
-    <div class="card2" id="m-links"></div>
+    <div class="card2 mmenu" id="m-menu" style="margin-top:0"><div class="skeleton" style="height:160px"></div></div>
+    <button class="backbtn" id="m-back" onclick="miscOpen('')" hidden><span data-i="chevron"></span>Sonstiges</button>
+    <div class="card2 msub" id="m-auf" hidden></div>
+    <div class="card2 msub" id="m-strom" hidden></div>
+    <div class="card2 msub" id="m-siri" hidden></div>
+    <div class="card2 msub" id="m-links" hidden></div>
   </section>
 
   <div class="version" id="version"></div>
@@ -899,7 +909,7 @@ function showView(v) {
   $('tab-trips').classList.toggle('on', v === 'trips'); $('tab-exp').classList.toggle('on', v === 'exp'); $('tab-stats').classList.toggle('on', v === 'stats'); $('tab-misc').classList.toggle('on', v === 'misc');
   if (v === 'exp') loadExp();
   if (v === 'stats') loadStats();
-  if (v === 'misc') loadMisc();
+  if (v === 'misc') { miscOpen(''); loadMisc(); }
   window.scrollTo(0, 0);
 }
 
@@ -1085,7 +1095,7 @@ function loadMisc() {
   if (!KEY && !DEMO) return;
   apiGetMisc().then(function (d) { MISC = d; renderMisc(); }).catch(function (e) {
     var m = e.message || String(e);
-    if (/Unbekannte Aktion/.test(m)) $('m-auf').innerHTML = '<h4>' + ic('alert') + 'API-Update nötig</h4><div class="sub">Dieser Reiter braucht die API ab Version ' + APP_VERSION + '. Code.gs im Projekt „Fahrtenbuch API“ ersetzen und eine neue Version bereitstellen.</div>';
+    if (/Unbekannte Aktion/.test(m)) $('m-menu').innerHTML = '<h4>' + ic('alert') + 'API-Update nötig</h4><div class="sub">Dieser Reiter braucht die API ab Version ' + APP_VERSION + '. Code.gs im Projekt „Fahrtenbuch API“ ersetzen und eine neue Version bereitstellen.</div>';
     else toast(m, true);
   });
 }
@@ -1174,12 +1184,33 @@ function renderMisc() {
     + (MISC.contractUrl ? '<a class="lrow" href="' + esc(MISC.contractUrl) + '" target="_blank" rel="noopener">' + ic('doc') + '<span>Vertrag öffnen<small>Google Docs</small></span>' + ic('chevron') + '</a>' : '');
   $('m-links').innerHTML = l;
   var sc = MISC.shortcuts || [];
-  $('m-siri').style.display = sc.length ? '' : 'none';
   $('m-siri').innerHTML = '<h4>' + ic('mic') + 'Sprachsteuerung mit Siri</h4>'
     + '<div class="sub">Kurzbefehle fürs iPhone: antippen → „Kurzbefehl hinzufügen“. Danach z. B. „Hey Siri, ' + esc(sc[0] ? sc[0].name : '') + '“.</div>'
     + sc.map(function (x) { return '<a class="lrow" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + ic('mic') + '<span>' + esc(x.name) + '<small>iCloud-Kurzbefehl laden</small></span>' + ic('chevron') + '</a>'; }).join('');
+  renderMiscMenu(); miscOpen(MSUB);
 }
 function anum(v) { var t = String(v || '').replace(/\s|€/g, ''); if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); return dnum(t); }
+var MSUB = '';
+var MISC_PAGES = [
+  ['m-auf',   'scale', 'Auflösung simulieren', function () { return 'Hochrechnung nach Vertrag §5'; }],
+  ['m-strom', 'zap',   'Strompreis & Ladestation', function () {
+      var pr = (MISC.prices || []).filter(function (p) { return p.from <= todayISO(); }).sort(function (a, b) { return a.from < b.from ? 1 : -1; })[0];
+      return pr ? fmtCt(pr.ct) + ' ct/kWh seit ' + dDE(pr.from) : 'noch kein Preis hinterlegt'; }],
+  ['m-siri',  'mic',   'Siri-Kurzbefehle', function () { var n = (MISC.shortcuts || []).length; return n ? n + ' Kurzbefehl' + (n > 1 ? 'e' : '') + ' fürs iPhone' : ''; }],
+  ['m-links', 'link',  'Links', function () { return 'Google Sheet' + (MISC.contractUrl ? ', Vertrag' : ''); }]
+];
+function renderMiscMenu() {
+  $('m-menu').innerHTML = MISC_PAGES.filter(function (pg) { return pg[0] !== 'm-siri' || (MISC.shortcuts || []).length; }).map(function (pg) {
+    return '<a class="lrow" href="javascript:void(0)" onclick="miscOpen(\'' + pg[0] + '\')">' + ic(pg[1]) + '<span>' + pg[2] + '<small>' + esc(pg[3]()) + '</small></span>' + ic('chevron') + '</a>';
+  }).join('');
+}
+function miscOpen(id) {
+  MSUB = id;
+  $('m-menu').hidden = !!id; $('m-menu').style.display = id ? 'none' : '';
+  $('m-back').hidden = !id;
+  MISC_PAGES.forEach(function (pg) { $(pg[0]).hidden = pg[0] !== id; });
+  window.scrollTo(0, 0);
+}
 function fmtNum(n) { return n == null ? '' : Number(n).toLocaleString('de-AT', { maximumFractionDigits: 2 }); }
 function fmtCt(n) { return Number(n).toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 2 }); }
 function firstOfNextMonth() { var d = new Date(); return isoOf(new Date(d.getFullYear(), d.getMonth() + 1, 1)); }
