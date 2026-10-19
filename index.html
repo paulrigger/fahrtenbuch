@@ -199,7 +199,7 @@
             display: flex; gap: 4px; padding: 5px; border-radius: 20px; z-index: 5;
             background: var(--sheet-bg); border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(6,28,40,.35); }
   .tabbar button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 650;
-                   display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 16px; border-radius: 15px; cursor: pointer; }
+                   display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 11px; min-width: 74px; border-radius: 15px; cursor: pointer; }
   .tabbar button .ic { width: 22px; height: 22px; }
   .tabbar button.on { background: var(--raised); color: var(--ink); }
   .tab-ic { position: relative; display: inline-flex; }
@@ -289,6 +289,30 @@
   .note2 { font-size: 12.5px; color: var(--muted); margin-top: 10px; line-height: 1.45; }
   details.tv { margin-top: 10px; font-size: 13px; color: var(--muted); }
   details.tv summary { cursor: pointer; color: var(--turquoise-surf); font-weight: 600; }
+  /* ---------- Sonstiges ---------- */
+  .card2 h4 { display: flex; align-items: center; gap: 8px; }
+  .card2 h4 .ic { width: 20px; height: 20px; color: var(--turquoise-surf); }
+  .bigval { font-size: 34px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .bigval small { font-size: 15px; font-weight: 600; color: var(--muted); margin-left: 5px; }
+  .muted { color: var(--muted); }
+  .kmrow { margin: 8px 0 12px; font-size: 13px; color: var(--muted); }
+  .kmrow b { color: var(--ink); font-size: 15px; }
+  .kmrow .split { margin: 6px 0 5px; }
+  .aufres { margin-top: 16px; border-radius: 16px; background: var(--raised); padding: 12px 14px; }
+  .arow { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 15px; }
+  .arow small { display: block; font-size: 12.5px; color: var(--muted); }
+  .arow + .arow { margin-top: 8px; }
+  .arow b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .aufres .total { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid var(--line);
+                   margin-top: 6px; padding-top: 10px; font-weight: 700; font-size: 16px; }
+  .aufres .total b { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lrow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 600; }
+  .lrow:first-of-type { border-top: 0; }
+  .lrow span { flex: 1; } .lrow small { display: block; font-weight: 400; font-size: 13px; color: var(--muted); }
+  .lrow .ic { width: 20px; height: 20px; color: var(--muted); }
+  .lrow .ic:last-child { transform: rotate(-90deg); }
+  .hist small { font-weight: 400; }
+  #view-misc input { font-size: 18px; }
   .add-exp { width: 100%; padding: 18px 12px; font-size: 18px; border-radius: 18px; box-shadow: 0 8px 24px -10px rgba(6,28,40,.5); }
   .add-exp .ic { width: 22px; height: 22px; }
   .list-h { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 4px 0; font-size: 13px; font-weight: 700;
@@ -351,21 +375,21 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>Fahrtenbuch <span class="badge">2.5</span></h1>
+      <h1>Fahrtenbuch <span class="badge">2.6</span></h1>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="me-btn" id="me" onclick="openPicker()"></button>
-      <button class="icon-btn" id="refresh" aria-label="Aktualisieren" onclick="load(); if (VIEW === 'exp') loadExp();" data-i="refresh"></button>
+      <button class="icon-btn" id="refresh" aria-label="Aktualisieren" onclick="load(); if (VIEW === 'exp') loadExp(); if (VIEW === 'stats') loadStats(); if (VIEW === 'misc') loadMisc();" data-i="refresh"></button>
     </div>
   </header>
 
   <div class="news" id="news" hidden>
     <button class="x" aria-label="Schließen" onclick="hideNews()" data-i="x"></button>
-    <b><span data-i="sparkles"></span>Neu in Version 2.5</b>
+    <b><span data-i="sparkles"></span>Neu in Version 2.6</b>
     <ul>
-      <li><b style="display:inline">Statistik</b>: km pro Monat und Person, Anteile der Haushalte, Kosten und €/100 km</li>
-      <li><b style="display:inline">Daueraufträge</b> für die Versicherungen, jährliche Beträge zum Bestätigen</li>
-      <li>Rote Zahl am Tab „Ausgaben", wenn etwas zu erledigen ist</li>
+      <li><b style="display:inline">Sonstiges</b>: Auflösung nach Vertrag simulieren, Strompreis der Ladestation pflegen, Link zum Google Sheet</li>
+      <li>Ladekosten der Schwitzkarre kommen künftig monatlich automatisch von der Ladestation</li>
+      <li><b style="display:inline">Statistik</b>: km pro Monat und Person, Anteile, Kosten und €/100 km</li>
     </ul>
   </div>
 
@@ -388,7 +412,12 @@
     <div id="olist" style="display:flex;flex-direction:column;gap:10px;margin-top:10px"></div>
   </section>
 
-  <a class="sheet-link" id="sheet-link" href="#" target="_blank" hidden><span data-i="sheet"></span>Google Sheet öffnen</a>
+  <section id="view-misc" hidden>
+    <div class="card2" id="m-auf" style="margin-top:0"><div class="skeleton" style="height:160px"></div></div>
+    <div class="card2" id="m-strom"></div>
+    <div class="card2" id="m-links"></div>
+  </section>
+
   <div class="version" id="version"></div>
 </div>
 
@@ -396,6 +425,7 @@
   <button id="tab-trips" class="on" onclick="showView('trips')"><span data-i="car"></span>Fahrten</button>
   <button id="tab-exp" onclick="showView('exp')"><span class="tab-ic"><span data-i="receipt"></span><span class="nbadge" id="exp-badge" hidden></span></span>Ausgaben</button>
   <button id="tab-stats" onclick="showView('stats')"><span data-i="chart"></span>Statistik</button>
+  <button id="tab-misc" onclick="showView('misc')"><span data-i="dots"></span>Sonstiges</button>
 </nav>
 
 <div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp(); closeOrd()"></div>
@@ -524,7 +554,7 @@ function apiPost(body) {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.5 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.6 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -534,6 +564,8 @@ function mock(b) {
     if (b.action === 'all') return res(JSON.parse(JSON.stringify(MOCK)));
     if (b.action === 'expenses') return res(mockExp());
     if (b.action === 'stats') return res(mockStats());
+    if (b.action === 'misc') return res(mockMisc());
+    if (b.action === 'setPrice') { MOCK_PRICES = MOCK_PRICES.filter(function (p) { return p.from !== b.from; }).concat([{ from: b.from, ct: +b.ct, by: b.driver }]); return res(mockMisc()); }
     if (/Expense$|ettle|Order|Draft/.test(b.action)) { try { return res(mockExpAction(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
     var c = MOCK.cars.filter(function (x) { return x.sheet === b.sheet; })[0];
     if (b.action === 'start') { c.open = true; c.startKM = +b.startKM; c.lastKM = +b.startKM; c.driver = b.driver; c.date = 'heute';
@@ -564,6 +596,19 @@ function mockStats() {
   return { ok: true, trips: trips, costs: costs };
 }
 
+var MOCK_PRICES = [{ from: '2025-01-01', ct: 17.9, by: 'Anna' }, { from: '2026-04-01', ct: 18.3, by: 'Ben' }];
+function mockMisc() {
+  var d = new Date(), st = isoOf(new Date(d.getFullYear(), d.getMonth() - 17, 15));
+  var ms = mockStats(), ch = ms.costs.filter(function (c) { return c.cat === 'Laden'; }).reverse().map(function (c) {
+    var kwh = Math.round(c.amount / 0.183 * 10) / 10; return { month: c.m, amount: c.amount, note: String(kwh).replace('.', ',') + ' kWh × 18,3 ct/kWh', status: 'offen' }; });
+  return { ok: true, sheetUrl: '#', contractUrl: '#',
+    contract: { start: st, equalPct: 30, ladeRatePct: 10, assets: [
+      { key: 'Schwitzkarre', label: 'Schwitzkarre', start: 24000, owner: 'TM' },
+      { key: 'Julia Brettner', label: 'Julia Brettner', start: 11000, owner: 'PK' },
+      { key: 'Lade', label: 'Ladeinfrastruktur', start: 1200, owner: 'PK' }] },
+    prices: MOCK_PRICES.slice(), chargingPayer: 'PK', charging: ch, trips: ms.trips };
+}
+
 var MOCKS = [];
 var MOCKO = [
   { id: 'O1', car: 'Julia Brettner', cat: 'Versicherung', label: 'Versicherung T5', interval: 'monatlich', day: 1, month: null, payer: 'PK', split: '50:50',
@@ -576,13 +621,14 @@ var MOCKX = [
   { id: 'D3', date: '2026-01-05', car: 'Julia Brettner', cat: 'Tanken', amount: 40, payer: 'TM', split: 'km', km: 50020, full: false, note: '', status: 'offen' },
   { id: 'D2', date: '2026-01-01', car: 'Julia Brettner', cat: 'Versicherung', amount: 94.11, payer: 'PK', split: '50:50', note: 'Versicherung T5', status: 'offen', order: 'O1@2026-01-01' },
   { id: 'D4', date: '2026-01-18', car: 'Schwitzkarre', cat: 'Versicherung', amount: 497.84, payer: 'TM', split: '50:50', note: 'Jahresversicherung MG5 – Betrag prüfen', status: 'Entwurf', order: 'O2@2026-01-18' },
+  { id: 'D5', date: '2025-12-31', car: 'Schwitzkarre', cat: 'Laden', amount: 52.34, payer: 'PK', split: 'kmMonat', note: '286 kWh × 18,3 ct/kWh', status: 'offen', order: 'Laden@2025-12', window: { month: '2025-12', pk: 180, tm: 520 } },
   { id: 'D1', date: '2025-12-20', car: 'Julia Brettner', cat: 'Tanken', amount: 98.5, payer: 'PK', split: 'fix', fixShare: 0.62, km: 49800, full: true, note: 'Altdaten', status: 'abgerechnet' }
 ];
 function mockExp() {
   var tw = { from: 49800, to: 50042, pk: 150, tm: 92 };
   var list = MOCKX.map(function (e) {
     e = JSON.parse(JSON.stringify(e));
-    e.share = e.split === 'km' ? tw.pk / (tw.pk + tw.tm) : e.split === 'PK' ? 1 : e.split === 'TM' ? 0 : e.split === 'fix' ? e.fixShare : 0.5;
+    e.share = e.split === 'km' ? tw.pk / (tw.pk + tw.tm) : e.split === 'PK' ? 1 : e.split === 'TM' ? 0 : e.split === 'fix' ? e.fixShare : e.split === 'kmMonat' ? e.window.pk / (e.window.pk + e.window.tm) : 0.5;
     e.provisional = e.split === 'km' && !e.full; if (e.split === 'km') e.window = tw;
     e.balance = Math.round((e.payer === 'PK' ? e.amount * (1 - e.share) : -e.amount * e.share) * 100) / 100;
     e.createdBy = 'Anna'; return e;
@@ -619,7 +665,7 @@ function mockExpAction(b) {
     var from = cur.saldo > 0 ? 'TM' : 'PK', to = from === 'TM' ? 'PK' : 'TM';
     if (me !== from) throw new Error('Abrechnen kann nur die zahlende Seite (' + MOCK.hhLabels[from] + ').');
     var id = 'R' + Date.now(), n = 0;
-    MOCKX.forEach(function (e) { if (e.status === 'offen') { var c = cur.expenses.filter(function (x) { return x.id === e.id; })[0]; if (e.split === 'km') { e.split = 'fix'; e.fixShare = c.share; } e.status = 'in Abrechnung'; e.settlement = id; n++; } });
+    MOCKX.forEach(function (e) { if (e.status === 'offen') { var c = cur.expenses.filter(function (x) { return x.id === e.id; })[0]; if (e.split === 'km' || e.split === 'kmMonat') { e.split = 'fix'; e.fixShare = c.share; } e.status = 'in Abrechnung'; e.settlement = id; n++; } });
     MOCKS.push({ id: id, created: 'heute', createdBy: b.driver, from: from, to: to, amount: Math.abs(cur.saldo), count: n, status: 'offen' });
   }
   if (b.action === 'confirmSettlement' || b.action === 'cancelSettlement') {
@@ -656,6 +702,10 @@ var P = {
   receipt:  '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
   trash:    '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
   chart:    '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  dots:     '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+  scale:    '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+  link:     '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  doc:      '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
   repeat:   '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
   bell:     '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
   arrow:    '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
@@ -672,7 +722,7 @@ function batIcon(soc) {
 var ICON = { 'Julia Brettner': ic('van', 'x'), 'Schwitzkarre': ic('car', 'x') + '<span class="bolt">' + ic('zap', 'x') + '</span>' };
 document.querySelectorAll('[data-i]').forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-i')); });
 var SUB  = { 'Julia Brettner': 'VW T5', 'Schwitzkarre': 'MG5 Elektro' };
-var NEWS_KEY = 'fb-news-2.5';
+var NEWS_KEY = 'fb-news-2.6';
 
 function $(id) { return document.getElementById(id); }
 function fmt(n) { return n == null || isNaN(n) ? '–' : Number(n).toLocaleString('de-AT'); }
@@ -688,7 +738,6 @@ function load() {
   apiGet().then(function (d) {
     $('refresh').classList.remove('spin');
     STATE = d; renderMe();
-    if (d.sheetUrl) { $('sheet-link').href = d.sheetUrl; $('sheet-link').hidden = false; }
     $('version').textContent = 'Version ' + d.version;
     render();
     if (!ME) openPicker(true);
@@ -814,10 +863,11 @@ function submitDialog() {
 var VIEW = 'trips';
 function showView(v) {
   VIEW = v; sset('fb-view', v);
-  $('view-trips').hidden = v !== 'trips'; $('view-exp').hidden = v !== 'exp'; $('view-stats').hidden = v !== 'stats';
-  $('tab-trips').classList.toggle('on', v === 'trips'); $('tab-exp').classList.toggle('on', v === 'exp'); $('tab-stats').classList.toggle('on', v === 'stats');
+  $('view-trips').hidden = v !== 'trips'; $('view-exp').hidden = v !== 'exp'; $('view-stats').hidden = v !== 'stats'; $('view-misc').hidden = v !== 'misc';
+  $('tab-trips').classList.toggle('on', v === 'trips'); $('tab-exp').classList.toggle('on', v === 'exp'); $('tab-stats').classList.toggle('on', v === 'stats'); $('tab-misc').classList.toggle('on', v === 'misc');
   if (v === 'exp') loadExp();
   if (v === 'stats') loadStats();
+  if (v === 'misc') loadMisc();
   window.scrollTo(0, 0);
 }
 
@@ -910,7 +960,7 @@ function renderStats() {
         var k = byCar[c] ? byCar[c].PK + byCar[c].TM : 0, co = costCar[c] || 0;
         return '<tr><td>' + esc(c) + '</td><td class="r">' + fmt(k) + '</td><td class="r">' + eur0(co) + '</td><td class="r">' + (k ? (co / k * 100).toLocaleString('de-AT', { maximumFractionDigits: 1 }) : '–') + '</td></tr>';
       }).join('') + '</table>'
-    + '<div class="note2">Kosten = alle erfassten Ausgaben im Zeitraum (inkl. Versicherung). MG5-Ladekosten sind nur bis zur letzten manuellen Ladeabrechnung enthalten – die automatische Erfassung über Node-RED folgt.</div></div>';
+    + '<div class="note2">Kosten = alle erfassten Ausgaben im Zeitraum (inkl. Versicherung). MG5-Ladekosten sind bis zur letzten manuellen Ladeabrechnung enthalten, danach monatlich über die Ladestation (Strompreis im Reiter „Sonstiges“).</div></div>';
 
   // Kosten nach Kategorie
   var cats = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; }), cmax = cats.length ? byCat[cats[0]] : 1;
@@ -974,6 +1024,180 @@ function barPath(x, yTop, w, h, roundTop) {
        + (r ? 'Q' + (x + w) + ',' + yTop + ' ' + (x + w) + ',' + (yTop + r) : '') + 'V' + (yTop + h) + 'Z';
 }
 window.addEventListener('resize', function () { if (VIEW === 'stats' && STATS) renderStats(); });
+
+/* ---------- Sonstiges (Auflösung, Strompreis, Links) ---------- */
+var MISC = null;
+function apiGetMisc() {
+  if (DEMO) return mock({ action: 'misc' });
+  return fetch(API_URL + '?action=misc&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap);
+}
+function loadMisc() {
+  if (!KEY && !DEMO) return;
+  apiGetMisc().then(function (d) { MISC = d; renderMisc(); }).catch(function (e) { toast(e.message || String(e), true); });
+}
+function addYears(iso, n) { var p = iso.split('-'); return new Date(+p[0] + n, +p[1] - 1, +p[2]); }
+function isoOf(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function yearsBetween(a, b) { return (new Date(b) - new Date(a)) / (365.25 * 864e5); }
+
+/* Vertrag §5 (Vorschlag NEU) – reine Rechnung, auch für Tests:
+   in = { assets:[{key,start,end,owner,km:{PK,TM}|null}], equal: 0.3 }
+   Wertverlust je Auto: equal je zur Hälfte, Rest nach km; Ladeinfrastruktur (km:null) je zur Hälfte.
+   1) Wertverlust-Ausgleich = (Verlust TM − Verlust PK) / 2      (+ = TM zahlt an PK)
+   2) Restwert-Ausgleich   = Restwert bei TM − Gesamt-Restwert / 2  (+ = TM zahlt an PK) */
+function dissolve(inp) {
+  var L = { PK: 0, TM: 0 }, endTot = 0, heldTM = 0;
+  var rows = inp.assets.map(function (a) {
+    var loss = a.start - a.end, pkShare;
+    if (a.km) {
+      var t = a.km.PK + a.km.TM, kmPK = t > 0 ? a.km.PK / t : 0.5;
+      pkShare = inp.equal / 2 + (1 - inp.equal) * kmPK;
+    } else pkShare = 0.5;
+    var r = { key: a.key, loss: loss, pk: loss * pkShare, tm: loss * (1 - pkShare), kmShare: a.km ? (a.km.PK + a.km.TM > 0 ? a.km.PK / (a.km.PK + a.km.TM) : 0.5) : null };
+    L.PK += r.pk; L.TM += r.tm; endTot += a.end; if (a.owner === 'TM') heldTM += a.end;
+    return r;
+  });
+  var w = (L.TM - L.PK) / 2, rest = heldTM - endTot / 2;
+  return { rows: rows, loss: L, endTot: endTot, heldTM: heldTM, w: w, rest: rest, total: w + rest };
+}
+
+function aufGet() { try { return JSON.parse(sget('fb-auf') || '{}'); } catch (e) { return {}; } }
+function aufSet(o) { sset('fb-auf', JSON.stringify(o)); }
+function ladeAuto(c, day) {
+  var la = c.assets.filter(function (a) { return a.key === 'Lade'; })[0];
+  if (!la || la.start == null || !c.start) return null;
+  var y = Math.max(0, yearsBetween(c.start, day));
+  return Math.max(0, Math.round(la.start * (1 - (c.ladeRatePct || 0) / 100 * y) * 100) / 100);
+}
+
+function renderMisc() {
+  if (!MISC) return;
+  var c = MISC.contract || {}, assets = c.assets || [];
+  var missing = !c.start || c.equalPct == null || assets.some(function (a) { return a.start == null || !a.owner; });
+  var st = aufGet();
+  var day = st.day || todayISO();
+  var h = '<h4>' + ic('scale') + 'Auflösung simulieren</h4>'
+    + '<div class="sub">Hochrechnung nach Vertrag §5 – es wird nichts gebucht.</div>';
+  if (missing) {
+    h += '<div class="msg warn">Vertragswerte fehlen. Bitte im Google Sheet im Tab „Einstellungen“ eintragen (Vertragsbeginn, Startwerte, Besitzer, Prozentsätze).</div>';
+  } else {
+    var lade = ladeAuto(c, day);
+    h += '<div class="fields single fgroup">'
+      + '<div><label for="a-day">Stichtag</label><input id="a-day" type="date" value="' + esc(day) + '" oninput="aufInput()"></div>'
+            + '<div><label for="a-Schwitzkarre">Marktwert Schwitzkarre (€)</label><input id="a-Schwitzkarre" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 13.000" value="' + esc(st.Schwitzkarre || '') + '" oninput="aufInput()"></div>'
+      + '<div><label for="a-Julia Brettner">Marktwert Julia Brettner (€)</label><input id="a-Julia Brettner" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 6.000" value="' + esc(st['Julia Brettner'] || '') + '" oninput="aufInput()"></div>'
+      + '<div><label for="a-Lade">Restwert Ladeinfrastruktur (€) – leer = automatisch</label><input id="a-Lade" type="text" inputmode="decimal" autocomplete="off" placeholder="' + fmtNum(lade) + '" value="' + esc(st.Lade || '') + '" oninput="aufInput()"></div>'
+      + '</div><div id="a-res"></div>';
+  }
+  $('m-auf').innerHTML = h;
+  if (!missing) aufCalc();
+
+  // Strompreis
+  var pr = (MISC.prices || []).slice().sort(function (a, b) { return a.from < b.from ? 1 : -1; });
+  var today = todayISO(), cur = pr.filter(function (p) { return p.from <= today; })[0];
+  var future = pr.filter(function (p) { return p.from > today; }).pop();
+  var s = '<h4>' + ic('zap') + 'Strompreis Ladestation</h4>'
+    + '<div class="sub">Für die monatlichen Ladekosten der Schwitzkarre' + (MISC.chargingPayer ? ' · bezahlt von ' + esc(hhLabel(MISC.chargingPayer)) : '') + '</div>'
+    + (cur ? '<div class="bigval">' + fmtCt(cur.ct) + '<small>ct/kWh</small></div><div class="infoline">gültig seit <b>' + dDE(cur.from) + '</b>'
+              + (future ? ' · ab <b>' + dDE(future.from) + '</b>: <b>' + fmtCt(future.ct) + ' ct</b>' : '') + '</div>'
+           : '<div class="msg warn">Noch kein Strompreis hinterlegt.</div>')
+    + (pr.length ? '<div class="hist">' + pr.map(function (p) {
+        return '<div class="' + (cur && p === cur ? 'cur' : '') + '"><span>ab ' + dDE(p.from) + (p.by ? ' <small class="muted">· ' + esc(p.by) + '</small>' : '') + '</span><span>' + fmtCt(p.ct) + ' ct</span></div>'; }).join('') + '</div>' : '')
+    + '<div class="sectitle">Neuer Preis</div><div class="fields">'
+    + '<div><label for="p-ct">ct/kWh (brutto)</label><input id="p-ct" type="text" inputmode="decimal" autocomplete="off" placeholder="18,3"></div>'
+    + '<div><label for="p-from">gültig ab</label><input id="p-from" type="date" value="' + firstOfNextMonth() + '"></div></div>'
+    + '<div class="msg" id="p-msg"></div>'
+    + '<button class="btn primary" id="p-save" style="width:100%;margin-top:12px" onclick="savePrice()">' + ic('check') + 'Preis speichern</button>';
+  var ch = MISC.charging || [];
+  s += '<div class="sectitle">Von der Ladestation</div>'
+    + (ch.length ? '<div class="hist">' + ch.map(function (x) {
+        return '<div><span>' + monLbl(x.month, true) + ' <small class="muted">· ' + esc(x.note) + '</small></span><span>' + eur(x.amount) + '</span></div>'; }).join('') + '</div>'
+      : '<div class="infoline">Noch keine Monatswerte. Node-RED schickt den Verbrauch einmal im Monat; die Buchung „Laden“ erscheint dann automatisch unter Ausgaben (aufgeteilt nach km im Monat).</div>');
+  $('m-strom').innerHTML = s;
+
+  // Links
+  var l = '<h4>' + ic('link') + 'Links</h4>'
+    + (MISC.sheetUrl ? '<a class="lrow" href="' + esc(MISC.sheetUrl) + '" target="_blank" rel="noopener">' + ic('sheet') + '<span>Google Sheet öffnen<small>alle Daten, Einstellungen</small></span>' + ic('chevron') + '</a>' : '')
+    + (MISC.contractUrl ? '<a class="lrow" href="' + esc(MISC.contractUrl) + '" target="_blank" rel="noopener">' + ic('doc') + '<span>Vertrag öffnen<small>Google Docs</small></span>' + ic('chevron') + '</a>' : '');
+  $('m-links').innerHTML = l;
+}
+function anum(v) { var t = String(v || '').replace(/\s|€/g, ''); if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); return dnum(t); }
+function fmtNum(n) { return n == null ? '' : Number(n).toLocaleString('de-AT', { maximumFractionDigits: 2 }); }
+function fmtCt(n) { return Number(n).toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 2 }); }
+function firstOfNextMonth() { var d = new Date(); return isoOf(new Date(d.getFullYear(), d.getMonth() + 1, 1)); }
+
+function aufInput() {
+  var o = { day: $('a-day').value };
+  ['Schwitzkarre', 'Julia Brettner', 'Lade'].forEach(function (k) { o[k] = $('a-' + k).value; });
+  aufSet(o);
+  $('a-Lade').placeholder = fmtNum(ladeAuto(MISC.contract, o.day || todayISO()));
+  aufCalc();
+}
+function aufCalc() {
+  var c = MISC.contract, st = aufGet(), day = st.day || todayISO();
+  var m0 = c.start.slice(0, 7), m1 = day.slice(0, 7), km = {};
+  (MISC.trips || []).forEach(function (t) {
+    if (t.m < m0 || t.m > m1) return;
+    var k = km[t.car] = km[t.car] || { PK: 0, TM: 0 }; k[t.h] += t.km;
+  });
+  var vals = {}, miss = [];
+  c.assets.forEach(function (a) {
+    var v = a.key === 'Lade' ? (st.Lade ? anum(st.Lade) : ladeAuto(c, day)) : anum(st[a.key] || '');
+    if (!(v >= 0) || (a.key !== 'Lade' && !st[a.key])) miss.push(a.label); else vals[a.key] = v;
+  });
+  var ownerTxt = function (a) { return a.owner ? 'bleibt bei ' + esc(hhLabel(a.owner)) : ''; };
+  var kmHtml = ['Schwitzkarre', 'Julia Brettner'].map(function (car) {
+    var k = km[car] || { PK: 0, TM: 0 }, t = k.PK + k.TM, s = t ? k.PK / t : 0.5;
+    return '<div class="kmrow"><b>' + car + '</b><div class="split"><i style="flex:' + (s || 0.0001) + ';background:var(--c-pk)"></i><i style="flex:' + ((1 - s) || 0.0001) + ';background:var(--c-tm)"></i></div>'
+      + '<span>' + esc(hhLabel('PK')) + ' ' + fkm(k.PK) + ' (' + pct(s) + ') · ' + esc(hhLabel('TM')) + ' ' + fkm(k.TM) + ' (' + pct(1 - s) + ')</span></div>';
+  }).join('');
+  var h = '<div class="sectitle">Gefahrene km seit ' + dDE(c.start) + '</div>' + kmHtml;
+  if (miss.length) {
+    $('a-res').innerHTML = h + '<div class="infoline" style="margin-top:12px">Marktwerte eintragen (z. B. Angebot von wir-kaufen-dein-auto.com oder Gutachten), dann erscheint hier die Ausgleichszahlung.</div>';
+    return;
+  }
+  var eq = c.equalPct / 100;
+  var r = dissolve({ equal: eq, assets: c.assets.map(function (a) {
+    return { key: a.key, start: a.start, end: vals[a.key], owner: a.owner, km: a.key === 'Lade' ? null : (km[a.key] || { PK: 0, TM: 0 }) }; }) });
+  h += '<div class="sectitle">Wertverlust</div><table class="tbl"><tr><th></th><th class="r">Start</th><th class="r">heute</th><th class="r">Verlust</th></tr>'
+    + c.assets.map(function (a, i) {
+        return '<tr><td>' + esc(a.label) + '<div class="muted" style="font-size:12px">' + ownerTxt(a) + '</div></td><td class="r">' + eur0(a.start) + '</td><td class="r">' + eur0(vals[a.key]) + '</td><td class="r">' + eur0(r.rows[i].loss) + '</td></tr>';
+      }).join('')
+    + '</table>'
+    + '<div class="sectitle">Wer trägt welchen Wertverlust</div><table class="tbl"><tr><th></th><th class="r">' + esc(hhLabel('PK')) + '</th><th class="r">' + esc(hhLabel('TM')) + '</th></tr>'
+    + c.assets.map(function (a, i) {
+        var x = r.rows[i];
+        return '<tr><td>' + esc(a.label) + '<div class="muted" style="font-size:12px">' + (x.kmShare == null ? 'je zur Hälfte' : c.equalPct + ' % je zur Hälfte, ' + (100 - c.equalPct) + ' % nach km') + '</div></td><td class="r">' + eur0(x.pk) + '</td><td class="r">' + eur0(x.tm) + '</td></tr>';
+      }).join('')
+    + '<tr><td><b>Summe</b></td><td class="r"><b>' + eur0(r.loss.PK) + '</b></td><td class="r"><b>' + eur0(r.loss.TM) + '</b></td></tr></table>';
+  var who = function (v) { return v >= 0 ? [hhLabel('TM'), hhLabel('PK')] : [hhLabel('PK'), hhLabel('TM')]; };
+  var line = function (lbl, v) {
+    var w = who(v);
+    return '<div class="arow"><span>' + lbl + '<small>' + (Math.abs(v) < 0.5 ? 'kein Ausgleich' : esc(w[0]) + ' → ' + esc(w[1])) + '</small></span><b>' + eur0(Math.abs(v)) + '</b></div>';
+  };
+  var t = who(r.total);
+  h += '<div class="aufres">'
+    + line('1 · Wertverlust-Ausgleich', r.w)
+    + line('2 · Restwert-Ausgleich', r.rest)
+    + '<div class="total">' + (Math.abs(r.total) < 0.5 ? 'Kein Ausgleich nötig' : '<span>' + esc(t[0]) + ' zahlt an ' + esc(t[1]) + '</span><b>' + eur(Math.abs(r.total)) + '</b>') + '</div>'
+    + '</div>'
+    + '<div class="note2">Nach Vertrag §5 (Vorschlag NEU): Wertverlust der Autos ' + c.equalPct + ' % je zur Hälfte, ' + (100 - c.equalPct) + ' % nach gefahrenen km je Auto; '
+    + 'Ladeinfrastruktur je zur Hälfte (' + fmtNum(c.ladeRatePct) + ' % pro Jahr, wenn kein Wert eingetragen). Wertverlust-Ausgleich = halbe Differenz der getragenen Verluste; Restwert-Ausgleich = was über der Hälfte des Restwerts (' + eur0(r.endTot / 2) + ' je Haushalt) behalten wird. km monatsgenau ab Vertragsbeginn bis Stichtag. '
+    + 'Zahlungsfrist laut Vertrag: drei Wochen. Startwerte und Prozentsätze stehen im Google Sheet (Tab „Einstellungen“).</div>';
+  $('a-res').innerHTML = h;
+}
+
+function savePrice() {
+  var ct = dnum($('p-ct').value), from = $('p-from').value, msg = $('p-msg');
+  msg.className = 'msg';
+  if (!(ct > 0)) { msg.className = 'msg err'; msg.textContent = 'Bitte einen Preis in ct/kWh eingeben.'; return; }
+  if (!from) { msg.className = 'msg err'; msg.textContent = 'Bitte ein Datum wählen.'; return; }
+  if (!ME) return openPicker(true);
+  $('p-save').disabled = true;
+  apiPost({ action: 'setPrice', ct: ct, from: from }).then(function (d) {
+    MISC = Object.assign(MISC || {}, d); renderMisc(); toast('Strompreis gespeichert', false, 'check');
+  }).catch(function (e) { $('p-save').disabled = false; msg.className = 'msg err'; msg.textContent = e.message || String(e); });
+}
 
 /* ---------- Ausgaben ---------- */
 var EXP = null, XF = null, SHOW_DONE = false;
@@ -1177,7 +1401,7 @@ function xItem(e) {
   var split = e.split === 'PK' || e.split === 'TM' ? 'trägt nur ' + nb(e.split)
             : Math.abs(e.share - 0.5) < 0.0001 ? 'je zur Hälfte'
             : nb('PK') + '&nbsp;' + pct(e.share).replace(' ', '&nbsp;') + ' · ' + nb('TM') + '&nbsp;' + pct(1 - e.share).replace(' ', '&nbsp;');
-  var sh = e.provisional ? '<span class="tag">vorläufig</span>' : e.order ? '<span class="tag" style="background:var(--raised);color:var(--muted)">Dauerauftrag</span>' : '';
+  var sh = e.provisional ? '<span class="tag">vorläufig</span>' : /^Laden@/.test(e.order || '') ? '<span class="tag" style="background:var(--raised);color:var(--muted)">Ladestation</span>' : e.order ? '<span class="tag" style="background:var(--raised);color:var(--muted)">Dauerauftrag</span>' : '';
   return '<div class="xi" onclick="openExp(null,\'' + esc(e.id) + '\')"><div class="t ' + (e.car === 'Schwitzkarre' ? 'Schwitzkarre' : 'Julia') + '">' + ic(CAT_ICON[e.cat] || 'box') + '</div>'
     + '<div class="m"><b>' + title + '</b><span>' + sub + '</span><span>' + paid + '</span><span>' + split + '</span></div>'
     + '<div class="r"><b>' + eur(e.amount) + '</b><span>' + sh + '</span></div></div>';
@@ -1194,10 +1418,10 @@ function openExp(preset, id) {
     car: preset.car || 'Julia Brettner', cat: preset.cat || '', amount: null, date: todayISO(),
     km: julia ? julia.lastKM : null, liter: null, full: true, payer: myHH(), split: '', note: ''
   };
-  XF.isNew = !e; XF.locked = !!(e && e.status !== 'offen');
+  XF.isNew = !e; XF.locked = !!(e && (e.status !== 'offen' || /^Laden@/.test(e.order || '')));
   if (!XF.cat) XF.cat = XF.car === 'Julia Brettner' ? 'Tanken' : 'Versicherung';
   if (!XF.split) XF.split = XF.cat === 'Tanken' ? 'km' : '50:50';
-  $('x-title').textContent = XF.isNew ? 'Ausgabe eintragen' : (XF.locked ? 'Ausgabe (' + e.status + ')' : 'Ausgabe bearbeiten');
+  $('x-title').textContent = XF.isNew ? 'Ausgabe eintragen' : (/^Laden@/.test(e.order || '') ? 'Laden (Ladestation)' : XF.locked ? 'Ausgabe (' + e.status + ')' : 'Ausgabe bearbeiten');
   $('x-sub').textContent = XF.isNew ? '' : 'Erfasst von ' + (e.createdBy || '–') + (e.changedBy ? ' · zuletzt geändert von ' + e.changedBy + (e.changedAt ? ' (' + e.changedAt + ')' : '') : '');
   $('x-amount').value = XF.amount != null ? String(XF.amount).replace('.', ',') : '';
   $('x-date').value = XF.date; $('x-km').value = XF.km != null ? XF.km : '';
@@ -1228,7 +1452,7 @@ function renderXF() {
   $('x-payer').innerHTML = segHTML([['PK', esc(hhLabel('PK'))], ['TM', esc(hhLabel('TM'))]], XF.payer, 'setPayer');
   var tank = XF.split === 'km';
   $('x-tank').style.display = XF.cat === 'Tanken' ? '' : 'none';
-  $('x-split-wrap').style.display = (tank || XF.split === 'fix') ? 'none' : '';
+  $('x-split-wrap').style.display = (tank || XF.split === 'fix' || XF.split === 'kmMonat') ? 'none' : '';
   $('x-split').innerHTML = segHTML([['50:50', 'je zur Hälfte'], ['PK', 'nur ' + esc(hhLabel('PK'))], ['TM', 'nur ' + esc(hhLabel('TM'))]], XF.split, 'setSplit');
   updPreview();
 }
@@ -1254,7 +1478,13 @@ function updPreview() {
   if (XF.split === '50:50') { share = 0.5; info = 'Fixkosten: je zur Hälfte'; }
   else if (XF.split === 'PK') { share = 1; info = 'Trägt ' + hhLabel('PK') + ' allein'; }
   else if (XF.split === 'TM') { share = 0; info = 'Trägt ' + hhLabel('TM') + ' allein'; }
-  else if (XF.split === 'fix') { share = XF.share; info = 'Fixer Anteil aus den Altdaten'; }
+  else if (XF.split === 'fix') { share = XF.share; info = /^Laden@/.test(XF.order || '') ? 'Nach km im Monat (bei der Abrechnung fixiert)' : 'Fixer Anteil aus den Altdaten'; }
+  else if (XF.split === 'kmMonat') {
+    var mw = XF.window || { pk: 0, tm: 0, month: '' };
+    share = XF.share; prov = XF.provisional;
+    info = 'Nach km im ' + (mw.month ? monLbl(mw.month, true) : 'Monat') + ': ' + hhLabel('PK') + ' ' + fmt(mw.pk) + ' km · ' + hhLabel('TM') + ' ' + fmt(mw.tm) + ' km'
+         + (prov ? ' (Monat läuft noch)' : '');
+  }
   else if (XF.split === 'km') {
     var w = (!XF.isNew && XF.window) ? XF.window : EXP.tankWindow;
     if (w && w.pk + w.tm > 0) {
@@ -1333,7 +1563,7 @@ load();
 loadExp();   // auch im Fahrten-Tab, damit die rote Zahl stimmt
 setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } }, 60000);   // alle 60 s still aktualisieren
 document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } });
-if (sget('fb-view') === 'exp' || sget('fb-view') === 'stats') showView(sget('fb-view'));
+if (['exp', 'stats', 'misc'].indexOf(sget('fb-view')) >= 0) showView(sget('fb-view'));
 </script>
 </body>
 </html>

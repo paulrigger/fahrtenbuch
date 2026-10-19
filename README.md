@@ -70,6 +70,14 @@ Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertra
 
 ![Statistik](docs/statistik.png)
 
+**Sonstiges** *(ab v2.6)*
+- **Auflösung simulieren** nach Vertrag §5: zwei Marktwerte eintragen (Restwert der Ladeinfrastruktur wird automatisch mit 10 %/Jahr gerechnet oder überschrieben). Wertverlust der Autos 30 % je zur Hälfte, 70 % nach km je Auto seit Vertragsbeginn; daraus Wertverlust- und Restwert-Ausgleich und die Gesamtzahlung zwischen den Haushalten. Nur Hochrechnung, es wird nichts gebucht.
+- **Strompreis der Ladestation** in ct/kWh mit „gültig ab“ (Historie bleibt)
+- **Ladekosten automatisch**: Node-RED schickt einmal im Monat den Verbrauch der Ladestation; daraus entsteht die Buchung „Laden“ (kWh × Preis), aufgeteilt nach den km der Schwitzkarre im jeweiligen Monat
+- Link zum Google Sheet und zum Vertrag (nur noch hier)
+
+![Sonstiges](docs/sonstiges.png)
+
 **Allgemein**
 - Als **App auf dem Home-Bildschirm** installierbar (eigenes Icon, kein Browser-Rahmen, kein Google-Banner)
 - **Hell- und Dunkelmodus** folgen der Systemeinstellung
@@ -202,6 +210,7 @@ Alle Antworten sind JSON, Fehler immer als `{ "ok": false, "error": "…" }`.
 |---|---|
 | `?key=…&action=all` | `version`, `drivers`, `households`, `hhLabels`, `sheetUrl`, `cars[]` |
 | `?key=…&action=stats` | `trips[{m, car, p, h, km}]`, `costs[{m, car, cat, amount}]` (Monatswerte) |
+| `?key=…&action=misc` | `contract{start, assets[], ladeRatePct, equalPct}`, `prices[]`, `chargingPayer`, `charging[]`, `trips[]`, `sheetUrl`, `contractUrl` |
 | `?key=…&action=expenses` | `expenses[]`, `saldo`, `saldoProvisional`, `tankWindow`, `categories` |
 
 ### POST (`Content-Type: text/plain`, JSON im Body)
@@ -222,8 +231,24 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | `settle` | – | offenen Saldo abrechnen (nur zahlende Seite) |
 | `confirmSettlement` | `id` | Erhalt bestätigen (nur empfangende Seite) |
 | `cancelSettlement` | `id` | Abrechnung zurückziehen (nur zahlende Seite) |
+| `setPrice` | `ct`, `from` | Strompreis ab Datum (gleiches Datum = überschreiben) |
+| `charging` | `month` (`JJJJ-MM`), `kwh`, `source?` | Monatsverbrauch der Ladestation buchen – **ohne `driver`** (für Node-RED). Erneuter Aufruf für denselben Monat aktualisiert die Buchung, solange sie nicht abgerechnet ist |
 
-`split`: `km` (nur Tanken) · `50:50` · `PK` · `TM` · `fix` (Altdaten).
+**Node-RED (Beispiel, Function-Node vor einem HTTP-Request-Node `POST`, Return „parsed JSON“):**
+
+```js
+// am 1. des Monats: Verbrauch des Vormonats (Zählerstand Ende − Anfang) in kWh
+const d = new Date(); d.setDate(0);                      // letzter Tag des Vormonats
+const month = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+msg.url = env.get('FAHRTENBUCH_URL');                    // …/exec
+msg.headers = { 'Content-Type': 'text/plain;charset=utf-8' };
+msg.payload = JSON.stringify({ key: env.get('FAHRTENBUCH_KEY'), action: 'charging', month, kwh: msg.kwh });
+return msg;
+```
+
+Apps Script antwortet auf POST mit einer Weiterleitung – im HTTP-Request-Node „Weiterleitungen folgen“ aktiv lassen.
+
+`split`: `km` (nur Tanken) · `50:50` · `PK` · `TM` · `fix` (Altdaten) · `kmMonat` (nur Laden von der Ladestation).
 
 ---
 
@@ -252,9 +277,13 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | Q | Anteil erster Haushalt (berechnet, von der API geschrieben) |
 | R | Ausgleich (+ TM→PK / − PK→TM, von der API geschrieben) |
 | S | Abrechnungs-ID |
-| T | Dauerauftrag (`Auftrags-ID@Fälligkeit`) |
+| T | Dauerauftrag (`Auftrags-ID@Fälligkeit`) bzw. Ladestation (`Laden@JJJJ-MM`) |
 
 **Tab `Daueraufträge`** (eine Zeile pro Preisstufe, gleiche ID = gleicher Auftrag): `ID | Fahrzeug | Kategorie | Bezeichnung | Betrag | Intervall | Fällig am Tag | Fällig im Monat | gültig ab | gültig bis | Bezahlt von | Aufteilung | Jährliche Anpassung am | Angelegt von`
+
+**Tab `Einstellungen`**: `Einstellung | Wert | Hinweis` – Vertragsbeginn, Startwerte und Besitzer je Auto/Ladeinfrastruktur, Wertverlust Ladeinfrastruktur % pro Jahr, Wertverlust gleich verteilt %, Strom bezahlt von, Link Vertrag. Wird beim ersten Aufruf mit leeren Werten angelegt.
+
+**Tab `Strompreise`**: `gültig ab | ct/kWh | eingetragen von | eingetragen am`
 
 **Tab `Abrechnungen`**: `ID | Erstellt am | Erstellt von | Von (zahlt) | An (erhält) | Betrag | Anzahl Buchungen | Status | Erledigt am | Erledigt von`
 
@@ -293,9 +322,9 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 | Ausgaben eintragen | ✅ v2.2 |
 | Migration Altdaten | ✅ v2.2 |
 | Statistik-Seite | ✅ v2.5 |
-| Vertragsseite: Auflösung simulieren | ⏳ |
+| Vertragsseite: Auflösung simulieren | ✅ v2.6 |
 
-**Phase 2:** Siri „Tankung eintragen" · ~~Abrechnung~~ ✅ v2.3 · Lücken-Seite · ~~Fixkosten/Versicherung~~ ✅ v2.4 · MG5-Laden über Node-RED · Erinnerungen · Reservierungskalender · Belegfoto
+**Phase 2:** Siri „Tankung eintragen" · ~~Abrechnung~~ ✅ v2.3 · Lücken-Seite · ~~Fixkosten/Versicherung~~ ✅ v2.4 · MG5-Laden über Node-RED (API ✅ v2.6, Flow offen) · Erinnerungen · Reservierungskalender · Belegfoto
 
 ---
 
@@ -303,6 +332,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.6** | Reiter „Sonstiges“: Auflösung nach Vertrag §5 simulieren, Strompreis pflegen, Ladekosten über Node-RED (`charging`), Links zu Sheet und Vertrag |
 | **2.5** | Statistik-Reiter; rote Zahl am Tab „Ausgaben" für offene Aufgaben |
 | **2.4** | Daueraufträge (Versicherung), Entwürfe für jährliche Beträge, Erinnerung vor Anpassung; Kategorien reduziert |
 | **2.3** | Abrechnen per Knopf, Bestätigung durch Empfänger, Tab „Abrechnungen" |

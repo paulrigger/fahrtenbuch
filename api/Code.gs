@@ -1,5 +1,5 @@
 /**
- * Fahrtenbuch API – v2.2 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
+ * Fahrtenbuch API – v2.6 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
  *
  * Bereitstellen als Web-App:  Ausführen als: Ich   |   Zugriff: Jeder
  * Einmalig: Funktion setup() ausführen -> API-Key steht im Log (Ausführungsprotokoll).
@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.5';
+const VERSION = '2.6';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -66,6 +66,7 @@ function doGet(e) {
     if (action === 'all') return all_();
     if (action === 'expenses') { ensureRecurring_(); return expensesResponse_(); }
     if (action === 'stats') return statsResponse_();
+    if (action === 'misc') return miscResponse_();
     throw new Error('Unbekannte Aktion: ' + action);
   });
 }
@@ -80,6 +81,10 @@ function doPost(e) {
     if (['addOrder', 'changeOrderAmount', 'endOrder', 'confirmDraft'].indexOf(d.action) >= 0) {
       return orderAction_(d.action, d, checkDriver_(d.driver));
     }
+    if (d.action === 'charging') {   // Node-RED: monatlicher Verbrauch der Ladestation
+      return chargingAction_(d, d.driver ? checkDriver_(d.driver) : String(d.source || 'Node-RED').slice(0, 30));
+    }
+    if (d.action === 'setPrice') return priceAction_(d, checkDriver_(d.driver));
     if (['settle', 'confirmSettlement', 'cancelSettlement'].indexOf(d.action) >= 0) {
       return settlementAction_(d.action, d, checkDriver_(d.driver));
     }
@@ -299,6 +304,7 @@ function splitCode_(v) {
   const s = String(v == null ? '' : v).trim(), l = s.toLowerCase();
   if (s === '' || l === '50:50' || l === '50:50:00' || l === 'je zur hälfte') return '50:50';
   if (l === 'km' || l === 'nach km') return 'km';
+  if (l === 'kmmonat' || l === 'nach km im monat') return 'kmMonat';
   if (l === 'fix') return 'fix';
   return hhCode_(s.replace(/^nur\s+/i, '')) || s;
 }
@@ -307,6 +313,7 @@ function splitLabel_(c) {
   if (c === 'PK' || c === 'TM') return 'nur ' + HH_LABELS[c];
   if (c === '50:50') return 'je zur Hälfte';
   if (c === 'km') return 'nach km';
+  if (c === 'kmMonat') return 'nach km im Monat';
   return c;
 }
 
@@ -377,6 +384,16 @@ function allocate_(exps) {
     else if (e.split === 'PK') e.share = 1;
     else if (e.split === 'TM') e.share = 0;
     else if (e.split === '50:50') e.share = 0.5;
+  });
+  // Laden (Ladestation): Anteil nach den km des Autos im jeweiligen Kalendermonat
+  let mk = null;
+  const curM = today_().slice(0, 7);
+  exps.forEach(function (e) {
+    if (e.split !== 'kmMonat') return;
+    mk = mk || monthKm_();
+    const m = e.date.slice(0, 7), k = (mk[e.car] || {})[m] || { PK: 0, TM: 0 };
+    e.share = shareOf_(k); e.provisional = m >= curM;
+    e.window = { month: m, pk: k.PK, tm: k.TM };
   });
   const tanks = exps.filter(function (e) {
     return e.cat === 'Tanken' && e.car === TANK_CAR && e.km != null && (e.split === 'km' || (e.split === 'fix' && e.full));
@@ -472,6 +489,7 @@ function expenseAction_(action, d, driver) {
     if (!hit) throw new Error('Buchung nicht gefunden.');
     if (action === 'deleteExpense') {
       if (hit.status !== 'offen') throw new Error('Buchungen in einer Abrechnung können nicht gelöscht werden.');
+      if (/^Laden@/.test(hit.order)) throw new Error('Diese Buchung kommt automatisch von der Ladestation.');
       if (hit.order) throw new Error('Diese Buchung stammt aus einem Dauerauftrag – Betrag dort ändern oder den Auftrag beenden.');
       sh.deleteRow(hit.row);
       return { id: hit.id, mode: 'deleted' };
@@ -479,6 +497,7 @@ function expenseAction_(action, d, driver) {
     // updateExpense
     const x = d.expense || {};
     if (hit.status !== 'offen') throw new Error('Buchungen in einer Abrechnung können nicht geändert werden.');
+    if (/^Laden@/.test(hit.order)) throw new Error('Diese Buchung kommt automatisch von der Ladestation.');
     const e = validateExpense_(Object.assign({}, hit, x));
     const fix = e.split === 'fix' ? (hit.fixShare == null ? 0.5 : hit.fixShare) : '';
     sh.getRange(hit.row, 2, 1, 15).setValues([[e.date, e.car, e.cat, e.amount, HH_LABELS[e.payer], splitLabel_(e.split), fix,
@@ -541,7 +560,7 @@ function settlementAction_(action, d, driver) {
       const id = 'R' + new Date().getTime().toString(36).toUpperCase();
       // Buchungen markieren; km-Anteile fixieren, damit sich die Abrechnung später nicht mehr verschiebt
       open.forEach(function (e) {
-        if (e.split === 'km') {
+        if (e.split === 'km' || e.split === 'kmMonat') {
           ex.getRange(e.row, 7, 1, 2).setValues([['fix', e.share]]);
         }
         ex.getRange(e.row, 13).setValue('in Abrechnung');
@@ -798,7 +817,8 @@ function addStage_(o, amt, from, driver) {
 //   trips: [{ m:'2026-10', car, p:'Paul', h:'PK', km }]   (Fahrten ohne Datum erben das Datum der Vorzeile)
 //   costs: [{ m:'2026-10', car, cat, amount }]          (ohne Entwürfe)
 
-function statsResponse_() {
+/** km je Monat/Auto/Person aus den Fahrtenbüchern (Fahrten ohne Datum erben das Datum der Vorzeile) */
+function statsTrips_() {
   const tz = Session.getScriptTimeZone(), agg = {};
   Object.keys(CARS).forEach(function (car) {
     const sh = sheet_(car), n = sh.getLastRow();
@@ -816,6 +836,19 @@ function statsResponse_() {
       (agg[k] = agg[k] || { m: m, car: car, p: p, h: h, km: 0 }).km += e - s;
     });
   });
+  return Object.keys(agg).map(function (k) { return agg[k]; });
+}
+/** { Auto: { 'JJJJ-MM': { PK, TM } } } */
+function monthKm_() {
+  const r = {};
+  statsTrips_().forEach(function (t) {
+    const c = r[t.car] = r[t.car] || {}, m = c[t.m] = c[t.m] || { PK: 0, TM: 0 };
+    m[t.h] += t.km;
+  });
+  return r;
+}
+
+function statsResponse_() {
   const costs = {};
   readExpenses_().forEach(function (e) {
     if (e.status === 'Entwurf') return;
@@ -824,9 +857,151 @@ function statsResponse_() {
   });
   return {
     ok: true,
-    trips: Object.keys(agg).map(function (k) { return agg[k]; }),
+    trips: statsTrips_(),
     costs: Object.keys(costs).map(function (k) { const c = costs[k]; c.amount = Math.round(c.amount * 100) / 100; return c; })
   };
+}
+
+// ================================================================ Sonstiges (v2.6)
+//
+// Tab "Einstellungen": A Einstellung | B Wert | C Hinweis   (Vertragswerte für die Auflösung, wer den Strom zahlt …)
+// Tab "Strompreise":   A gültig ab | B ct/kWh | C eingetragen von | D eingetragen am
+// Laden: Node-RED schickt einmal im Monat  POST {key, action:"charging", month:"JJJJ-MM", kwh}
+//   -> Buchung "Laden" Schwitzkarre, Betrag = kWh × Preis (gültig am Monatsersten),
+//      bezahlt von "Strom bezahlt von", Aufteilung nach km im Monat. Idempotent je Monat (Spalte T "Laden@JJJJ-MM").
+
+const CFG_SHEET = 'Einstellungen';
+const CFG_KEYS = [
+  ['Vertragsbeginn', 'Datum (TT.MM.JJJJ) – ab hier zählen die km für die Auflösung'],
+  ['Startwert Schwitzkarre', '€ laut Vertrag'],
+  ['Besitzer Schwitzkarre', 'Haushalt, der das Auto bei der Auflösung behält'],
+  ['Startwert Julia Brettner', '€ laut Vertrag'],
+  ['Besitzer Julia Brettner', 'Haushalt, der das Auto bei der Auflösung behält'],
+  ['Startwert Ladeinfrastruktur', '€ laut Vertrag'],
+  ['Besitzer Ladeinfrastruktur', 'Haushalt, der die Ladeinfrastruktur behält'],
+  ['Wertverlust Ladeinfrastruktur % pro Jahr', 'linear auf den Startwert'],
+  ['Wertverlust gleich verteilt %', 'Anteil je zur Hälfte, der Rest nach km (Vertrag §5.3)'],
+  ['Strom bezahlt von', 'Haushalt, der den Strom der Ladestation bezahlt'],
+  ['Link Vertrag', 'optional, wird im Reiter „Sonstiges“ verlinkt']
+];
+const PRICE_SHEET = 'Strompreise';
+const PRICE_HEAD = ['gültig ab', 'ct/kWh', 'eingetragen von', 'eingetragen am'];
+
+function cfgSheet_() {
+  let sh = ss_().getSheetByName(CFG_SHEET);
+  if (!sh) {
+    sh = ss_().insertSheet(CFG_SHEET);
+    sh.getRange(1, 1, 1, 3).setValues([['Einstellung', 'Wert', 'Hinweis']]).setFontWeight('bold');
+    sh.getRange(2, 1, CFG_KEYS.length, 3).setValues(CFG_KEYS.map(function (k) { return [k[0], '', k[1]]; }));
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function readCfg_() {
+  const sh = cfgSheet_(), n = sh.getLastRow(), out = {};
+  if (n < 2) return out;
+  sh.getRange(2, 1, n - 1, 2).getValues().forEach(function (r) {
+    const k = String(r[0] || '').trim();
+    if (k) out[k] = r[1] instanceof Date ? iso_(r[1]) : r[1];
+  });
+  return out;
+}
+function priceSheet_() {
+  let sh = ss_().getSheetByName(PRICE_SHEET);
+  if (!sh) {
+    sh = ss_().insertSheet(PRICE_SHEET);
+    sh.getRange(1, 1, 1, PRICE_HEAD.length).setValues([PRICE_HEAD]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function readPrices_() {
+  const sh = priceSheet_(), n = sh.getLastRow(), tz = Session.getScriptTimeZone();
+  if (n < 2) return [];
+  return sh.getRange(2, 1, n - 1, 4).getValues().map(function (r) {
+    return { from: fmtDate_(r[0]), ct: num_(r[1]), by: String(r[2] || ''),
+             at: r[3] instanceof Date ? Utilities.formatDate(r[3], tz, 'dd.MM.yyyy') : String(r[3] || '') };
+  }).filter(function (p) { return /^\d{4}-\d{2}-\d{2}$/.test(p.from) && p.ct > 0; })
+    .sort(function (a, b) { return a.from < b.from ? -1 : 1; });
+}
+function priceAt_(prices, date) {
+  let ct = null;
+  prices.forEach(function (p) { if (p.from <= date) ct = p.ct; });
+  return ct;
+}
+function r2_(n) { return Math.round(n * 100) / 100; }
+
+function miscResponse_() {
+  const c = readCfg_();
+  const v = function (k) { return num_(c[k]); };
+  const asset = function (key, label, cfgName) {
+    return { key: key, label: label, start: v('Startwert ' + cfgName), owner: hhCode_(c['Besitzer ' + cfgName]) || null };
+  };
+  const charging = readExpenses_().filter(function (e) { return /^Laden@/.test(e.order); })
+    .sort(function (a, b) { return a.order < b.order ? 1 : -1; }).slice(0, 12)
+    .map(function (e) { return { month: e.order.slice(6), amount: e.amount, note: e.note, status: e.status, by: e.createdBy }; });
+  return {
+    ok: true, version: VERSION, sheetUrl: ss_().getUrl(), contractUrl: String(c['Link Vertrag'] || ''),
+    contract: {
+      start: fmtDate_(c['Vertragsbeginn']) || null,
+      assets: [asset('Schwitzkarre', 'Schwitzkarre', 'Schwitzkarre'), asset('Julia Brettner', 'Julia Brettner', 'Julia Brettner'),
+               asset('Lade', 'Ladeinfrastruktur', 'Ladeinfrastruktur')],
+      ladeRatePct: v('Wertverlust Ladeinfrastruktur % pro Jahr'),
+      equalPct: v('Wertverlust gleich verteilt %')
+    },
+    prices: readPrices_(),
+    chargingPayer: hhCode_(c['Strom bezahlt von']) || null,
+    charging: charging,
+    trips: statsTrips_()
+  };
+}
+
+function priceAction_(d, driver) {
+  const ct = num_(d.ct), from = fmtDate_(d.from);
+  if (!(ct > 0) || ct > 200) throw new Error('Bitte einen gültigen Preis in ct/kWh eingeben.');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) throw new Error('Bitte ein gültiges Datum eingeben.');
+  withLock_(function () {
+    const sh = priceSheet_();
+    if (readPrices_().some(function (p) { return p.from === from; })) {
+      const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 1).getValues();
+      for (let i = 0; i < rows.length; i++) {
+        if (fmtDate_(rows[i][0]) === from) { sh.getRange(i + 2, 2, 1, 3).setValues([[ct, driver, new Date()]]); return; }
+      }
+    }
+    sh.appendRow([from, ct, driver, new Date()]);
+  });
+  return miscResponse_();
+}
+
+function chargingAction_(d, by) {
+  const m = String(d.month || '').trim(), kwh = num_(d.kwh);
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(m)) throw new Error('month bitte im Format JJJJ-MM.');
+  if (kwh == null || kwh < 0 || kwh > 5000) throw new Error('kwh fehlt oder ist ungültig.');
+  const payer = hhCode_(readCfg_()['Strom bezahlt von']);
+  if (!payer) throw new Error('Einstellung „Strom bezahlt von“ fehlt (Tab Einstellungen).');
+  const ct = priceAt_(readPrices_(), m + '-01');
+  if (ct == null) throw new Error('Kein Strompreis für ' + m + ' hinterlegt (Reiter Sonstiges).');
+  const amount = r2_(kwh * ct / 100), key = 'Laden@' + m;
+  const date = due_(+m.slice(0, 4), +m.slice(5, 7), 31);
+  const note = String(kwh).replace('.', ',') + ' kWh × ' + String(ct).replace('.', ',') + ' ct/kWh';
+  const res = withLock_(function () {
+    const sh = expSheet_();
+    const hit = readExpenses_().filter(function (e) { return e.order === key; })[0];
+    if (hit) {
+      if (hit.status !== 'offen') throw new Error('Laden ' + m + ' ist bereits in einer Abrechnung.');
+      sh.getRange(hit.row, 5).setValue(amount);
+      sh.getRange(hit.row, 12).setValue(note);
+      sh.getRange(hit.row, 15, 1, 2).setValues([[by, new Date()]]);
+      return { mode: 'updated', id: hit.id };
+    }
+    if (amount <= 0) return { mode: 'skipped' };
+    const id = 'B' + new Date().getTime().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36).toUpperCase();
+    sh.appendRow([id, date, 'Schwitzkarre', 'Laden', amount, HH_LABELS[payer], splitLabel_('kmMonat'), '', '', '', '',
+                  note, 'offen', by, '', '', '', '', '', key]);
+    return { mode: 'added', id: id };
+  });
+  writeComputed_();
+  return { ok: true, mode: res.mode, id: res.id || null, month: m, kwh: kwh, ct: ct, amount: amount };
 }
 
 /** Einmalig im Editor ausführen: schreibt Haushalte im Tab "Buchungen" aus (statt PK/TM) und setzt Überschriften. */
