@@ -44,6 +44,15 @@ Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertra
 - Live-Vorschau der Aufteilung im Formular; Bearbeiten und Löschen offener Buchungen
 - Alle Altbuchungen migriert (fixe Anteile, Status offen / abgerechnet)
 
+**Abrechnung** *(ab v2.3)*
+- Knopf **„Abrechnen"** in der Saldo-Kachel – nur für die zahlende Seite
+- Saldo geht auf 0, es entsteht eine Kachel **„Offene Abrechnung"**
+- Die empfangende Seite **bestätigt den Erhalt** → Buchungen sind quittiert, Kachel verschwindet
+- Die zahlende Seite kann eine noch offene Abrechnung **zurückziehen**
+- km-Anteile vorläufiger Tankungen werden beim Abrechnen fixiert
+
+![Abrechnung](docs/abrechnung.png)
+
 **Allgemein**
 - Als **App auf dem Home-Bildschirm** installierbar (eigenes Icon, kein Browser-Rahmen, kein Google-Banner)
 - **Hell- und Dunkelmodus** folgen der Systemeinstellung
@@ -186,7 +195,10 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | `end` | `sheet`, `endKM`, `startKM?` | offene Fahrt beenden **oder** komplette Fahrt direkt eintragen |
 | `addExpense` | `expense{ car, cat, amount, date, payer, split?, km?, liter?, full?, note? }` | Buchung anlegen |
 | `updateExpense` | `id`, `expense{…}` | Buchung ändern (nicht bei `abgerechnet`) |
-| `deleteExpense` | `id` | Buchung löschen (nicht bei `abgerechnet`) |
+| `deleteExpense` | `id` | Buchung löschen (nur Status `offen`) |
+| `settle` | – | offenen Saldo abrechnen (nur zahlende Seite) |
+| `confirmSettlement` | `id` | Erhalt bestätigen (nur empfangende Seite) |
+| `cancelSettlement` | `id` | Abrechnung zurückziehen (nur zahlende Seite) |
 
 `split`: `km` (nur Tanken) · `50:50` · `PK` · `TM` · `fix` (Altdaten).
 
@@ -212,10 +224,13 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | J | Liter |
 | K | Vollgetankt |
 | L | Notiz |
-| M | Status (`offen` / `abgerechnet`) |
+| M | Status (`offen` / `in Abrechnung` / `abgerechnet`) |
 | N–P | Erfasst von, Geändert von, Geändert am |
 | Q | Anteil erster Haushalt (berechnet, von der API geschrieben) |
 | R | Ausgleich (+ TM→PK / − PK→TM, von der API geschrieben) |
+| S | Abrechnungs-ID |
+
+**Tab `Abrechnungen`**: `ID | Erstellt am | Erstellt von | Von (zahlt) | An (erhält) | Betrag | Anzahl Buchungen | Status | Erledigt am | Erledigt von`
 
 ---
 
@@ -254,7 +269,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 | Statistik-Seite | ⏳ |
 | Vertragsseite: Auflösung simulieren | ⏳ |
 
-**Phase 2:** Siri „Tankung eintragen" · Quartalsabrechnung · Lücken-Seite · Fixkosten/Versicherung · MG5-Laden über Node-RED · Erinnerungen · Reservierungskalender · Belegfoto
+**Phase 2:** Siri „Tankung eintragen" · ~~Abrechnung~~ ✅ v2.3 · Lücken-Seite · Fixkosten/Versicherung · MG5-Laden über Node-RED · Erinnerungen · Reservierungskalender · Belegfoto
 
 ---
 
@@ -262,6 +277,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.3** | Abrechnen per Knopf, Bestätigung durch Empfänger, Tab „Abrechnungen" |
 | **2.2** | Ausgaben, Saldo, Tank-Aufteilung nach km, Migration der Altbuchungen |
 | **2.1** | Eigene Oberfläche auf GitHub Pages (ohne Google-Banner), Namensauswahl, Home-Bildschirm-App |
 | **2.0** | Fahrt direkt eintragen, Live-km-Berechnung, Plausibilitätsprüfung, neues Design, Hell/Dunkel |

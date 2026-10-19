@@ -209,6 +209,20 @@
   .saldo .who { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; }
   .saldo .who .ic { width: 18px; height: 18px; color: var(--turquoise-surf); }
   .saldo .hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .saldo .btn { width: 100%; margin-top: 14px; }
+  .saldo .note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+  .settle { border-radius: 20px; padding: 16px 18px; margin-top: 14px; background: var(--card);
+            border: 2px dashed var(--turquoise-surf); box-shadow: var(--shadow); }
+  .settle .lbl { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+                 display: flex; align-items: center; gap: 6px; }
+  .settle .lbl .ic { width: 16px; height: 16px; color: var(--turquoise-surf); }
+  .settle .amt { font-size: 28px; font-weight: 800; font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
+  .settle .who { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; flex-wrap: wrap; }
+  .settle .who .ic { width: 18px; height: 18px; color: var(--turquoise-surf); }
+  .settle .meta { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .settle .btn { width: 100%; margin-top: 12px; }
+  .settle .wait { font-size: 14px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--raised); }
+  .settle .linkbtn { color: var(--muted); font-size: 14px; }
   .add-exp { width: 100%; padding: 18px 12px; font-size: 18px; border-radius: 18px; box-shadow: 0 8px 24px -10px rgba(6,28,40,.5); }
   .add-exp .ic { width: 22px; height: 22px; }
   .list-h { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 4px 0; font-size: 13px; font-weight: 700;
@@ -271,7 +285,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>Fahrtenbuch <span class="badge">2.2</span></h1>
+      <h1>Fahrtenbuch <span class="badge">2.3</span></h1>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="me-btn" id="me" onclick="openPicker()"></button>
@@ -281,11 +295,10 @@
 
   <div class="news" id="news" hidden>
     <button class="x" aria-label="Schließen" onclick="hideNews()" data-i="x"></button>
-    <b><span data-i="sparkles"></span>Neu in Version 2.2</b>
+    <b><span data-i="sparkles"></span>Neu in Version 2.3</b>
     <ul>
-      <li><b style="display:inline">Ausgaben</b>: Tanken, Versicherung, Service &amp; Co. direkt eintragen (unten auf „Ausgaben" tippen)</li>
-      <li>Tanken wird automatisch nach gefahrenen km zwischen zwei Volltankungen aufgeteilt</li>
-      <li>Aktueller Saldo: wer wem wie viel schuldet</li>
+      <li><b style="display:inline">Abrechnen</b>: die zahlende Seite rechnet den Saldo per Knopfdruck ab, die andere Seite bestätigt den Erhalt</li>
+      <li>Ausgaben: Tanken, Versicherung, Service &amp; Co. direkt eintragen, Tanken wird nach km aufgeteilt</li>
     </ul>
   </div>
 
@@ -296,6 +309,7 @@
   <section id="view-exp" hidden>
     <button class="btn primary add-exp" id="add-exp" onclick="openExp()"><span data-i="plus"></span>Neue Ausgabe eintragen</button>
     <div class="saldo" id="saldo" style="margin-top:14px"><div class="skeleton" style="height:120px"></div></div>
+    <div id="settlements"></div>
     <div id="xlists" style="display:flex;flex-direction:column;gap:10px;margin-top:14px"></div>
   </section>
 
@@ -394,7 +408,7 @@ function apiPost(body) {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.2 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.3 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -403,7 +417,7 @@ function mock(b) {
   return new Promise(function (res) { setTimeout(function () {
     if (b.action === 'all') return res(JSON.parse(JSON.stringify(MOCK)));
     if (b.action === 'expenses') return res(mockExp());
-    if (/Expense$/.test(b.action)) return res(mockExpAction(b));
+    if (/Expense$|ettle/.test(b.action)) { try { return res(mockExpAction(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
     var c = MOCK.cars.filter(function (x) { return x.sheet === b.sheet; })[0];
     if (b.action === 'start') { c.open = true; c.startKM = +b.startKM; c.lastKM = +b.startKM; c.driver = b.driver; c.date = 'heute';
       return res({ ok: true, mode: 'started', start: c.startKM, cars: MOCK.cars }); }
@@ -412,6 +426,7 @@ function mock(b) {
   }, 350); });
 }
 
+var MOCKS = [];
 var MOCKX = [
   { id: 'D3', date: '2026-01-05', car: 'Julia Brettner', cat: 'Tanken', amount: 40, payer: 'TM', split: 'km', km: 50020, full: false, note: '', status: 'offen' },
   { id: 'D2', date: '2026-01-02', car: 'Schwitzkarre', cat: 'Versicherung', amount: 93.02, payer: 'PK', split: '50:50', note: 'Oktober', status: 'offen' },
@@ -426,14 +441,30 @@ function mockExp() {
     e.balance = Math.round((e.payer === 'PK' ? e.amount * (1 - e.share) : -e.amount * e.share) * 100) / 100;
     e.createdBy = 'Anna'; return e;
   }).sort(function (a, b) { return a.date < b.date ? 1 : -1; });
-  var saldo = list.filter(function (e) { return e.status !== 'abgerechnet'; }).reduce(function (a, e) { return a + e.balance; }, 0);
-  return { ok: true, expenses: list, saldo: Math.round(saldo * 100) / 100, saldoProvisional: list.some(function (e) { return e.provisional && e.status !== 'abgerechnet'; }),
+  var saldo = list.filter(function (e) { return e.status === 'offen'; }).reduce(function (a, e) { return a + e.balance; }, 0);
+  return { ok: true, expenses: list, saldo: Math.round(saldo * 100) / 100, saldoProvisional: list.some(function (e) { return e.provisional && e.status === 'offen'; }),
+           settlements: MOCKS.filter(function (x) { return x.status === 'offen'; }),
            tankWindow: tw, categories: { 'Julia Brettner': ['Tanken', 'Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges'], 'Schwitzkarre': ['Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges'] } };
 }
 function mockExpAction(b) {
   if (b.action === 'addExpense') MOCKX.push(Object.assign({ id: 'D' + Date.now(), status: 'offen' }, b.expense));
   if (b.action === 'updateExpense') Object.assign(MOCKX.filter(function (e) { return e.id === b.id; })[0], b.expense);
   if (b.action === 'deleteExpense') MOCKX = MOCKX.filter(function (e) { return e.id !== b.id; });
+  var me = MOCK.households[b.driver], cur = mockExp();
+  if (b.action === 'settle') {
+    var from = cur.saldo > 0 ? 'TM' : 'PK', to = from === 'TM' ? 'PK' : 'TM';
+    if (me !== from) throw new Error('Abrechnen kann nur die zahlende Seite (' + MOCK.hhLabels[from] + ').');
+    var id = 'R' + Date.now(), n = 0;
+    MOCKX.forEach(function (e) { if (e.status === 'offen') { var c = cur.expenses.filter(function (x) { return x.id === e.id; })[0]; if (e.split === 'km') { e.split = 'fix'; e.fixShare = c.share; } e.status = 'in Abrechnung'; e.settlement = id; n++; } });
+    MOCKS.push({ id: id, created: 'heute', createdBy: b.driver, from: from, to: to, amount: Math.abs(cur.saldo), count: n, status: 'offen' });
+  }
+  if (b.action === 'confirmSettlement' || b.action === 'cancelSettlement') {
+    var st = MOCKS.filter(function (x) { return x.id === b.id; })[0];
+    var ok = b.action === 'confirmSettlement';
+    if (me !== (ok ? st.to : st.from)) throw new Error(ok ? 'Bestätigen kann nur die empfangende Seite.' : 'Zurückziehen kann nur die zahlende Seite.');
+    st.status = ok ? 'bestätigt' : 'zurückgezogen';
+    MOCKX.forEach(function (e) { if (e.settlement === st.id) { e.status = ok ? 'abgerechnet' : 'offen'; if (!ok) e.settlement = ''; } });
+  }
   return mockExp();
 }
 
@@ -474,7 +505,7 @@ function batIcon(soc) {
 var ICON = { 'Julia Brettner': ic('van', 'x'), 'Schwitzkarre': ic('car', 'x') + '<span class="bolt">' + ic('zap', 'x') + '</span>' };
 document.querySelectorAll('[data-i]').forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-i')); });
 var SUB  = { 'Julia Brettner': 'VW T5', 'Schwitzkarre': 'MG5 Elektro' };
-var NEWS_KEY = 'fb-news-2.2';
+var NEWS_KEY = 'fb-news-2.3';
 
 function $(id) { return document.getElementById(id); }
 function fmt(n) { return n == null || isNaN(n) ? '–' : Number(n).toLocaleString('de-AT'); }
@@ -511,7 +542,7 @@ function openPicker(force) {
   $('backdrop').classList.add('show'); $('picker').classList.add('show');
 }
 function closePicker() { if (!ME) return; $('picker').classList.remove('show'); if (!DLG) $('backdrop').classList.remove('show'); }
-function pickDriver(n) { ME = n; sset('fb-driver', n); renderMe(); closePicker(); toast('Hallo ' + n + '!', false, 'check'); }
+function pickDriver(n) { ME = n; sset('fb-driver', n); renderMe(); closePicker(); if (EXP) renderExp(); toast('Hallo ' + n + '!', false, 'check'); }
 
 function render() {
   $('cars').innerHTML = STATE.cars.map(function (c, i) {
@@ -650,15 +681,38 @@ function renderExp() {
   var s = EXP.saldo, el = $('saldo');
   var who = s > 0.004 ? hhLabel('TM') + ' ' + ic('arrow') + ' ' + hhLabel('PK')
           : s < -0.004 ? hhLabel('PK') + ' ' + ic('arrow') + ' ' + hhLabel('TM') : 'Alles ausgeglichen';
+  var payer = s > 0.004 ? 'TM' : s < -0.004 ? 'PK' : null;
+  var settleUI = !payer ? ''
+    : myHH() === payer
+      ? '<button class="btn primary" onclick="settle()">' + ic('check') + 'Abrechnen</button>'
+        + (EXP.saldoProvisional ? '<div class="note">Vorläufige Tankbeträge werden beim Abrechnen mit dem aktuellen Anteil fixiert.</div>' : '')
+      : '<div class="note">Abrechnen kann ' + esc(hhLabel(payer)) + ' als zahlende Seite.</div>';
   el.innerHTML = '<div class="lbl">Offener Saldo</div>'
     + '<div class="amt">' + eur(Math.abs(s)) + '</div>'
     + '<div class="who">' + who + '</div>'
-    + (EXP.saldoProvisional ? '<div class="hint">Enthält vorläufige Tankbeträge – fix ab der nächsten Volltankung.</div>' : '');
+    + (EXP.saldoProvisional ? '<div class="hint">Enthält vorläufige Tankbeträge – fix ab der nächsten Volltankung.</div>' : '')
+    + settleUI;
 
-  var open = EXP.expenses.filter(function (e) { return e.status !== 'abgerechnet'; });
+  $('settlements').innerHTML = (EXP.settlements || []).map(function (st) {
+    var act = myHH() === st.to
+      ? '<button class="btn primary" onclick="confirmSettlement(\'' + esc(st.id) + '\')">' + ic('check') + 'Zahlung erhalten – bestätigen</button>'
+      : myHH() === st.from
+        ? '<div class="wait">Wartet auf Bestätigung durch ' + esc(hhLabel(st.to)) + '.</div>'
+          + '<button class="linkbtn" onclick="cancelSettlement(\'' + esc(st.id) + '\')">Abrechnung zurückziehen</button>'
+        : '';
+    return '<div class="settle"><div class="lbl">' + ic('receipt') + 'Offene Abrechnung</div>'
+      + '<div class="amt">' + eur(st.amount) + '</div>'
+      + '<div class="who">' + esc(hhLabel(st.from)) + ' ' + ic('arrow') + ' ' + esc(hhLabel(st.to)) + '</div>'
+      + '<div class="meta">Erstellt ' + esc(st.created) + ' von ' + esc(st.createdBy) + ' · ' + st.count + ' Buchungen</div>'
+      + act + '</div>';
+  }).join('');
+
+  var open = EXP.expenses.filter(function (e) { return e.status === 'offen'; });
+  var pend = EXP.expenses.filter(function (e) { return e.status === 'in Abrechnung'; });
   var done = EXP.expenses.filter(function (e) { return e.status === 'abgerechnet'; });
   var html = '<div class="list-h"><span>Offen · ' + open.length + '</span></div>'
     + (open.length ? '<div class="xlist">' + open.map(xItem).join('') + '</div>' : '<div class="xlist"><div class="empty">Keine offenen Ausgaben 🎉</div></div>')
+    + (pend.length ? '<div class="list-h"><span>In Abrechnung · ' + pend.length + '</span></div><div class="xlist">' + pend.map(xItem).join('') + '</div>' : '')
     + '<div class="list-h"><span>Abgerechnet · ' + done.length + '</span><button onclick="SHOW_DONE=!SHOW_DONE;renderExp()">' + (SHOW_DONE ? 'ausblenden' : 'anzeigen') + '</button></div>'
     + (SHOW_DONE && done.length ? '<div class="xlist">' + done.map(xItem).join('') + '</div>' : '');
   $('xlists').innerHTML = html;
@@ -688,10 +742,10 @@ function openExp(preset, id) {
     car: preset.car || 'Julia Brettner', cat: preset.cat || '', amount: null, date: todayISO(),
     km: julia ? julia.lastKM : null, liter: null, full: true, payer: myHH(), split: '', note: ''
   };
-  XF.isNew = !e; XF.locked = !!(e && e.status === 'abgerechnet');
+  XF.isNew = !e; XF.locked = !!(e && e.status !== 'offen');
   if (!XF.cat) XF.cat = XF.car === 'Julia Brettner' ? 'Tanken' : 'Versicherung';
   if (!XF.split) XF.split = XF.cat === 'Tanken' ? 'km' : '50:50';
-  $('x-title').textContent = XF.isNew ? 'Ausgabe eintragen' : (XF.locked ? 'Ausgabe (abgerechnet)' : 'Ausgabe bearbeiten');
+  $('x-title').textContent = XF.isNew ? 'Ausgabe eintragen' : (XF.locked ? 'Ausgabe (' + e.status + ')' : 'Ausgabe bearbeiten');
   $('x-sub').textContent = XF.isNew ? '' : 'Erfasst von ' + (e.createdBy || '–') + (e.changedBy ? ' · zuletzt geändert von ' + e.changedBy + (e.changedAt ? ' (' + e.changedAt + ')' : '') : '');
   $('x-amount').value = XF.amount != null ? String(XF.amount).replace('.', ',') : '';
   $('x-date').value = XF.date; $('x-km').value = XF.km != null ? XF.km : '';
@@ -791,6 +845,26 @@ function deleteExp() {
   if (!XF || !confirm('Diese Buchung wirklich löschen?')) return;
   apiPost({ action: 'deleteExpense', id: XF.id }).then(function (d) { EXP = d; closeExp(); renderExp(); toast('Buchung gelöscht', false, 'check'); })
     .catch(function (e) { $('x-msg').className = 'msg err'; $('x-msg').textContent = e.message || String(e); });
+}
+
+/* ---------- Abrechnung ---------- */
+function settleCall(body, okMsg) {
+  return apiPost(body).then(function (d) { EXP = d; renderExp(); toast(okMsg, false, 'check'); })
+    .catch(function (e) { toast(e.message || String(e), true); });
+}
+function settle() {
+  if (!ME) return openPicker(true);
+  var s = EXP.saldo, to = s > 0 ? 'PK' : 'TM';
+  if (!confirm(eur(Math.abs(s)) + ' an ' + hhLabel(to) + ' abrechnen?\n\nDer Saldo geht auf 0. ' + hhLabel(to) + ' bestätigt danach den Erhalt.')) return;
+  settleCall({ action: 'settle' }, 'Abrechnung erstellt – bitte ' + eur(Math.abs(s)) + ' überweisen');
+}
+function confirmSettlement(id) {
+  if (!confirm('Zahlung erhalten? Die Buchungen werden damit als abgerechnet quittiert.')) return;
+  settleCall({ action: 'confirmSettlement', id: id }, 'Zahlung bestätigt – erledigt');
+}
+function cancelSettlement(id) {
+  if (!confirm('Abrechnung zurückziehen? Die Buchungen werden wieder offen.')) return;
+  settleCall({ action: 'cancelSettlement', id: id }, 'Abrechnung zurückgezogen');
 }
 
 /* ---------- Toast / News ---------- */

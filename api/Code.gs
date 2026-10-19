@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.2';
+const VERSION = '2.3';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -75,6 +75,9 @@ function doPost(e) {
     checkKey_(d.key);
     if (['addExpense', 'updateExpense', 'deleteExpense'].indexOf(d.action) >= 0) {
       return expenseAction_(d.action, d, checkDriver_(d.driver));
+    }
+    if (['settle', 'confirmSettlement', 'cancelSettlement'].indexOf(d.action) >= 0) {
+      return settlementAction_(d.action, d, checkDriver_(d.driver));
     }
     if (!CARS[d.sheet]) throw new Error('Unbekanntes Auto: ' + d.sheet);
     const driver = checkDriver_(d.driver);
@@ -260,7 +263,7 @@ function withLock_(fn) {
 //   Volltankung sind "vorläufig" (Vorschau bis zum aktuellen km-Stand).
 
 const EXP_SHEET = 'Buchungen';
-const EXP_COLS = 18;
+const EXP_COLS = 19;   // S = Abrechnungs-ID
 const CATEGORIES = ['Tanken', 'Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges', 'Laden'];
 const NEW_CATEGORIES = { 'Julia Brettner': ['Tanken', 'Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges'],
                          'Schwitzkarre':   ['Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges'] };
@@ -333,7 +336,7 @@ function readExpenses_() {
       row: i + 2, id: String(r[0]), date: fmtDate_(r[1]), car: String(r[2]), cat: String(r[3]),
       amount: num_(r[4]) || 0, payer: hhCode_(r[5]) || String(r[5]), split: splitCode_(r[6]), fixShare: num_(r[7]),
       km: num_(r[8]), liter: num_(r[9]), full: bool_(r[10]), note: String(r[11] || ''),
-      status: String(r[12] || 'offen'), createdBy: String(r[13] || ''), changedBy: String(r[14] || ''),
+      status: String(r[12] || 'offen'), settlement: String(r[18] || ''), createdBy: String(r[13] || ''), changedBy: String(r[14] || ''),
       changedAt: r[15] instanceof Date ? Utilities.formatDate(r[15], Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm') : String(r[15] || '')
     };
   }).filter(function (e) { return e.id; });
@@ -403,7 +406,7 @@ function allocate_(exps) {
 function expensesResponse_() {
   const exps = readExpenses_();
   const meta = allocate_(exps);
-  const open = exps.filter(function (e) { return e.status !== 'abgerechnet'; });
+  const open = exps.filter(function (e) { return e.status === 'offen'; });
   const saldo = Math.round(open.reduce(function (a, e) { return a + e.balance; }, 0) * 100) / 100;
   exps.sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : (a.row < b.row ? 1 : -1); });
   return {
@@ -412,7 +415,8 @@ function expensesResponse_() {
     saldo: saldo,                                   // + = TM schuldet PK, − = PK schuldet TM
     saldoProvisional: open.some(function (e) { return e.provisional; }),
     tankWindow: meta.tankWindow,
-    categories: NEW_CATEGORIES
+    categories: NEW_CATEGORIES,
+    settlements: readSettlements_().filter(function (x) { return x.status === 'offen'; }).map(function (x) { delete x.row; return x; })
   };
 }
 
@@ -430,7 +434,7 @@ function validateExpense_(x) {
     car: String(x.car || ''), cat: String(x.cat || ''), amount: num_(x.amount),
     payer: hhCode_(x.payer) || '', split: x.split ? splitCode_(x.split) : '', km: num_(x.km),
     liter: num_(x.liter), full: bool_(x.full), note: String(x.note || '').slice(0, 300),
-    status: x.status === 'abgerechnet' ? 'abgerechnet' : 'offen'
+    status: x.status ? String(x.status) : 'offen'
   };
   if (!CARS[e.car]) throw new Error('Bitte ein Auto wählen.');
   if (CATEGORIES.indexOf(e.cat) < 0) throw new Error('Unbekannte Kategorie: ' + e.cat);
@@ -461,13 +465,13 @@ function expenseAction_(action, d, driver) {
     const hit = exps.filter(function (x) { return x.id === String(d.id); })[0];
     if (!hit) throw new Error('Buchung nicht gefunden.');
     if (action === 'deleteExpense') {
-      if (hit.status === 'abgerechnet') throw new Error('Abgerechnete Buchungen können nicht gelöscht werden.');
+      if (hit.status !== 'offen') throw new Error('Buchungen in einer Abrechnung können nicht gelöscht werden.');
       sh.deleteRow(hit.row);
       return { id: hit.id, mode: 'deleted' };
     }
     // updateExpense
     const x = d.expense || {};
-    if (hit.status === 'abgerechnet' && x.status !== 'offen') throw new Error('Abgerechnete Buchungen können nicht geändert werden.');
+    if (hit.status !== 'offen') throw new Error('Buchungen in einer Abrechnung können nicht geändert werden.');
     const e = validateExpense_(Object.assign({}, hit, x));
     const fix = e.split === 'fix' ? (hit.fixShare == null ? 0.5 : hit.fixShare) : '';
     sh.getRange(hit.row, 2, 1, 15).setValues([[e.date, e.car, e.cat, e.amount, HH_LABELS[e.payer], splitLabel_(e.split), fix,
@@ -481,14 +485,95 @@ function expenseAction_(action, d, driver) {
   return out;
 }
 
+// ================================================================ Abrechnungen (v2.3)
+//
+// Tab "Abrechnungen": A ID | B Erstellt am | C Erstellt von | D Von (zahlt) | E An (erhält) | F Betrag
+//                     G Anzahl Buchungen | H Status (offen/bestätigt/zurückgezogen) | I Erledigt am | J Erledigt von
+// Ablauf: zahlende Partei löst "settle" aus -> alle offenen Buchungen bekommen Status "in Abrechnung"
+//         + Abrechnungs-ID (Spalte S), km-Anteile werden fixiert. Empfänger bestätigt -> "abgerechnet".
+//         Zahlende Partei kann zurückziehen -> Buchungen wieder "offen".
+
+const SET_SHEET = 'Abrechnungen';
+const SET_HEAD = ['ID', 'Erstellt am', 'Erstellt von', 'Von (zahlt)', 'An (erhält)', 'Betrag', 'Anzahl Buchungen',
+                  'Status', 'Erledigt am', 'Erledigt von'];
+
+function setSheet_() {
+  let sh = ss_().getSheetByName(SET_SHEET);
+  if (!sh) {
+    sh = ss_().insertSheet(SET_SHEET);
+    sh.getRange(1, 1, 1, SET_HEAD.length).setValues([SET_HEAD]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+
+function readSettlements_() {
+  const sh = ss_().getSheetByName(SET_SHEET);
+  if (!sh || sh.getLastRow() < 2) return [];
+  const tz = Session.getScriptTimeZone();
+  const f = function (v) { return v instanceof Date ? Utilities.formatDate(v, tz, 'dd.MM.yyyy') : String(v || ''); };
+  return sh.getRange(2, 1, sh.getLastRow() - 1, SET_HEAD.length).getValues().map(function (r, i) {
+    return { row: i + 2, id: String(r[0]), created: f(r[1]), createdBy: String(r[2]), from: hhCode_(r[3]), to: hhCode_(r[4]),
+             amount: num_(r[5]) || 0, count: num_(r[6]) || 0, status: String(r[7] || 'offen'),
+             doneAt: f(r[8]), doneBy: String(r[9] || '') };
+  }).filter(function (x) { return x.id; });
+}
+
+function settlementAction_(action, d, driver) {
+  const me = HOUSEHOLDS[driver];
+  const res = withLock_(function () {
+    const ex = expSheet_();
+    if (action === 'settle') {
+      const exps = readExpenses_();
+      allocate_(exps);
+      const open = exps.filter(function (e) { return e.status === 'offen'; });
+      const saldo = Math.round(open.reduce(function (a, e) { return a + e.balance; }, 0) * 100) / 100;
+      if (!open.length || Math.abs(saldo) < 0.01) throw new Error('Es gibt keinen offenen Saldo.');
+      const from = saldo > 0 ? 'TM' : 'PK', to = saldo > 0 ? 'PK' : 'TM';
+      if (me !== from) throw new Error('Abrechnen kann nur die zahlende Seite (' + HH_LABELS[from] + ').');
+      const id = 'R' + new Date().getTime().toString(36).toUpperCase();
+      // Buchungen markieren; km-Anteile fixieren, damit sich die Abrechnung später nicht mehr verschiebt
+      open.forEach(function (e) {
+        if (e.split === 'km') {
+          ex.getRange(e.row, 7, 1, 2).setValues([['fix', e.share]]);
+        }
+        ex.getRange(e.row, 13).setValue('in Abrechnung');
+        ex.getRange(e.row, 19).setValue(id);
+      });
+      setSheet_().appendRow([id, new Date(), driver, HH_LABELS[from], HH_LABELS[to], Math.abs(saldo), open.length, 'offen', '', '']);
+      return { id: id, mode: 'settled', amount: Math.abs(saldo), from: from, to: to };
+    }
+    const st = readSettlements_().filter(function (x) { return x.id === String(d.id); })[0];
+    if (!st) throw new Error('Abrechnung nicht gefunden.');
+    if (st.status !== 'offen') throw new Error('Diese Abrechnung ist bereits erledigt.');
+    const rows = readExpenses_().filter(function (e) { return e.settlement === st.id; });
+    const sh = setSheet_();
+    if (action === 'confirmSettlement') {
+      if (me !== st.to) throw new Error('Bestätigen kann nur die empfangende Seite (' + HH_LABELS[st.to] + ').');
+      rows.forEach(function (e) { ex.getRange(e.row, 13).setValue('abgerechnet'); });
+      sh.getRange(st.row, 8, 1, 3).setValues([['bestätigt', new Date(), driver]]);
+      return { id: st.id, mode: 'confirmed' };
+    }
+    // cancelSettlement
+    if (me !== st.from) throw new Error('Zurückziehen kann nur die zahlende Seite (' + HH_LABELS[st.from] + ').');
+    rows.forEach(function (e) { ex.getRange(e.row, 13).setValue('offen'); ex.getRange(e.row, 19).setValue(''); });
+    sh.getRange(st.row, 8, 1, 3).setValues([['zurückgezogen', new Date(), driver]]);
+    return { id: st.id, mode: 'cancelled' };
+  });
+  writeComputed_();
+  const out = expensesResponse_();
+  out.result = res;
+  return out;
+}
+
 /** Einmalig im Editor ausführen: schreibt Haushalte im Tab "Buchungen" aus (statt PK/TM) und setzt Überschriften. */
 function migrateLabels() {
   withLock_(function () {
     const sh = expSheet_();
     const n = sh.getLastRow();
     sh.getRange(1, 6, 1, 3).setValues([['Bezahlt von', 'Aufteilung', 'Anteil ' + HH_LABELS.PK + ' (fix)']]);
-    sh.getRange(1, 17, 1, 2).setValues([['Anteil ' + HH_LABELS.PK + ' (berechnet)',
-      'Ausgleich (+ ' + HH_LABELS.TM + ' → ' + HH_LABELS.PK + ' / − umgekehrt)']]);
+    sh.getRange(1, 17, 1, 3).setValues([['Anteil ' + HH_LABELS.PK + ' (berechnet)',
+      'Ausgleich (+ ' + HH_LABELS.TM + ' → ' + HH_LABELS.PK + ' / − umgekehrt)', 'Abrechnung']]);
     if (n < 2) return;
     const fg = sh.getRange(2, 6, n - 1, 2).getValues().map(function (r) {
       const p = hhCode_(r[0]);
