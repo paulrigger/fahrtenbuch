@@ -415,6 +415,7 @@
   <section id="view-misc" hidden>
     <div class="card2" id="m-auf" style="margin-top:0"><div class="skeleton" style="height:160px"></div></div>
     <div class="card2" id="m-strom"></div>
+    <div class="card2" id="m-siri" style="display:none"></div>
     <div class="card2" id="m-links"></div>
   </section>
 
@@ -602,7 +603,7 @@ function mockMisc() {
   var d = new Date(), st = isoOf(new Date(d.getFullYear(), d.getMonth() - 17, 15));
   var ms = mockStats(), ch = ms.costs.filter(function (c) { return c.cat === 'Laden'; }).reverse().map(function (c) {
     var kwh = Math.round(c.amount / 0.183 * 10) / 10; return { month: c.m, amount: c.amount, note: String(kwh).replace('.', ',') + ' kWh × 18,3 ct/kWh', status: 'offen' }; });
-  return { ok: true, sheetUrl: '#', contractUrl: '#',
+  return { ok: true, sheetUrl: '#', contractUrl: '#', shortcuts: [{ name: 'Fahrt starten', url: '#' }, { name: 'Fahrt beenden', url: '#' }],
     contract: { start: st, equalPct: 30, ladeRatePct: 10, assets: [
       { key: 'Schwitzkarre', label: 'Schwitzkarre', start: 24000, owner: 'TM' },
       { key: 'Julia Brettner', label: 'Julia Brettner', start: 11000, owner: 'PK' },
@@ -703,6 +704,7 @@ var P = {
   receipt:  '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
   trash:    '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
   chart:    '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  mic:      '<path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>',
   dots:     '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
   scale:    '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
   link:     '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
@@ -1135,6 +1137,11 @@ function renderMisc() {
     + (MISC.sheetUrl ? '<a class="lrow" href="' + esc(MISC.sheetUrl) + '" target="_blank" rel="noopener">' + ic('sheet') + '<span>Google Sheet öffnen<small>alle Daten, Einstellungen</small></span>' + ic('chevron') + '</a>' : '')
     + (MISC.contractUrl ? '<a class="lrow" href="' + esc(MISC.contractUrl) + '" target="_blank" rel="noopener">' + ic('doc') + '<span>Vertrag öffnen<small>Google Docs</small></span>' + ic('chevron') + '</a>' : '');
   $('m-links').innerHTML = l;
+  var sc = MISC.shortcuts || [];
+  $('m-siri').style.display = sc.length ? '' : 'none';
+  $('m-siri').innerHTML = '<h4>' + ic('mic') + 'Sprachsteuerung mit Siri</h4>'
+    + '<div class="sub">Kurzbefehle fürs iPhone: antippen → „Kurzbefehl hinzufügen“. Danach z. B. „Hey Siri, ' + esc(sc[0] ? sc[0].name : '') + '“.</div>'
+    + sc.map(function (x) { return '<a class="lrow" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + ic('mic') + '<span>' + esc(x.name) + '<small>iCloud-Kurzbefehl laden</small></span>' + ic('chevron') + '</a>'; }).join('');
 }
 function anum(v) { var t = String(v || '').replace(/\s|€/g, ''); if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); return dnum(t); }
 function fmtNum(n) { return n == null ? '' : Number(n).toLocaleString('de-AT', { maximumFractionDigits: 2 }); }

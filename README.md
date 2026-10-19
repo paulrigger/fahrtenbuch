@@ -75,6 +75,7 @@ Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertra
 - **Strompreis der Ladestation** in ct/kWh mit „gültig ab“ (Historie bleibt)
 - **Ladekosten automatisch**: Node-RED schickt einmal im Monat den Verbrauch der Ladestation; daraus entsteht die Buchung „Laden“ (kWh × Preis), aufgeteilt nach den km der Schwitzkarre im jeweiligen Monat
 - Link zum Google Sheet und zum Vertrag (nur noch hier)
+- **Siri-Kurzbefehle** zum Laden (iCloud-Links aus dem Tab „Einstellungen“, Zeilen `Kurzbefehl <Name>`)
 
 ![Sonstiges](docs/sonstiges.png)
 

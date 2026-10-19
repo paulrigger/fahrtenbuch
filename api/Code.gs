@@ -882,7 +882,8 @@ const CFG_KEYS = [
   ['Wertverlust Ladeinfrastruktur % pro Jahr', 'linear auf den Startwert'],
   ['Wertverlust gleich verteilt %', 'Anteil je zur Hälfte, der Rest nach km (Vertrag §5.3)'],
   ['Strom bezahlt von', 'Haushalt, der den Strom der Ladestation bezahlt'],
-  ['Link Vertrag', 'optional, wird im Reiter „Sonstiges“ verlinkt']
+  ['Link Vertrag', 'optional, wird im Reiter „Sonstiges“ verlinkt'],
+  ['Kurzbefehl Fahrt starten', 'iCloud-Link zum Siri-Kurzbefehl (beliebig viele Zeilen „Kurzbefehl <Name>“)']
 ];
 const PRICE_SHEET = 'Strompreise';
 const PRICE_HEAD = ['gültig ab', 'ct/kWh', 'eingetragen von', 'eingetragen am'];
@@ -942,6 +943,8 @@ function miscResponse_() {
     .map(function (e) { return { month: e.order.slice(6), amount: e.amount, note: e.note, status: e.status, by: e.createdBy }; });
   return {
     ok: true, version: VERSION, sheetUrl: ss_().getUrl(), contractUrl: String(c['Link Vertrag'] || ''),
+    shortcuts: Object.keys(c).filter(function (k) { return /^Kurzbefehl\s+\S/.test(k) && /^https:\/\//.test(String(c[k])); })
+      .map(function (k) { return { name: k.replace(/^Kurzbefehl\s+/, ''), url: String(c[k]) }; }),
     contract: {
       start: fmtDate_(c['Vertragsbeginn']) || null,
       assets: [asset('Schwitzkarre', 'Schwitzkarre', 'Schwitzkarre'), asset('Julia Brettner', 'Julia Brettner', 'Julia Brettner'),
