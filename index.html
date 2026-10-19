@@ -731,7 +731,9 @@ function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function 
 
 function load() {
   if (!KEY && !DEMO) {
-    $('cars').innerHTML = '<div class="notice"><b>Zugangslink fehlt</b><span>Bitte den Fahrtenbuch-Link aus der Gruppe einmal öffnen – danach merkt sich die App den Zugang.</span></div>';
+    $('cars').innerHTML = '<div class="notice"><b>Zugangslink fehlt</b><span>Den Fahrtenbuch-Link aus der Gruppe kopieren und hier einfügen – danach merkt sich die App den Zugang.</span>'
+      + '<input id="key-in" class="small" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Link einfügen" style="margin-top:14px">'
+      + '<button class="btn primary" style="width:100%;margin-top:10px" onclick="setKeyFromInput()">' + ic('check') + 'Speichern</button></div>';
     return;
   }
   $('refresh').classList.add('spin');
@@ -857,6 +859,13 @@ function submitDialog() {
     $('d-ok').disabled = false; $('d-ok').textContent = 'Nochmal versuchen';
     $('d-msg').className = 'msg err'; $('d-msg').textContent = err.message || String(err);
   });
+}
+
+function setKeyFromInput() {
+  var v = ($('key-in').value || '').trim(), m = v.match(/[?&]k=([A-Za-z0-9]+)/);
+  var k = m ? m[1] : (/^[A-Za-z0-9]{12,64}$/.test(v) ? v : '');
+  if (!k) return toast('Das sieht nicht nach dem Fahrtenbuch-Link aus.', true);
+  KEY = k; sset('fb-key', k); load();
 }
 
 /* ---------- Ansicht wechseln ---------- */
