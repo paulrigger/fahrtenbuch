@@ -281,10 +281,12 @@ Apps Script antwortet auf POST mit einer Weiterleitung – im HTTP-Request-Node 
 | L | Notiz |
 | M | Status (`Entwurf` / `offen` / `in Abrechnung` / `abgerechnet`) |
 | N–P | Erfasst von, Geändert von, Geändert am |
-| Q | Anteil erster Haushalt (berechnet, von der API geschrieben) |
-| R | Ausgleich (+ TM→PK / − PK→TM, von der API geschrieben) |
+| Q | Anteil erster Haushalt – **Formel** (`=W/(W+X)` bei km-Aufteilung, `=H` bei eigener Aufteilung, sonst `1/2`, `1`, `0`) |
+| R | Ausgleich – **Formel** `=ROUND(Betrag × Anteil der anderen Seite; 2)` (+ TM→PK / − PK→TM) |
 | S | Abrechnungs-ID |
 | T | Dauerauftrag (`Auftrags-ID@Fälligkeit`) bzw. Ladestation (`Laden@JJJJ-MM`) |
+| U, V | km-Fenster von/bis (Tanken: zwischen zwei Volltankungen, Laden: erster Start bis letztes Ende im Monat) |
+| W, X | km je Haushalt im Fenster – **Formel** über das Fahrtenbuch des Autos (Fahrten anteilig) |
 
 **Tab `Daueraufträge`** (eine Zeile pro Preisstufe, gleiche ID = gleicher Auftrag): `ID | Fahrzeug | Kategorie | Bezeichnung | Betrag | Intervall | Fällig am Tag | Fällig im Monat | gültig ab | gültig bis | Bezahlt von | Aufteilung | Jährliche Anpassung am | Angelegt von`
 
@@ -339,6 +341,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.8** | Aufteilung im Sheet als nachvollziehbare Formeln (Spalten Q, R, W, X) statt fixer Werte |
 | **2.7** | Fahrtenbuch-Seite mit Lücken/Korrekturen, eigene Aufteilung bei Ausgaben, Fälligkeitstag bei Daueraufträgen, Menü unter „Sonstiges“ |
 | **2.6** | Reiter „Sonstiges“: Auflösung nach Vertrag §5 simulieren, Strompreis pflegen, Ladekosten über Node-RED (`charging`), Links zu Sheet und Vertrag |
 | **2.5** | Statistik-Reiter; rote Zahl am Tab „Ausgaben" für offene Aufgaben |
