@@ -44,6 +44,7 @@
     --page: radial-gradient(120% 60% at 100% 0%, rgba(75,163,195,.35), transparent 60%), var(--baltic-blue);
     --sheet-bg: var(--baltic-blue);
     --c-pk: #3d9fd6; --c-tm: #ec4e5e; --c-one: #8fc3df; --grid: rgba(255,255,255,.10);
+    --cat-1: #3987e5; --cat-2: #d95926; --cat-3: #199e70; --cat-4: #c98500; --cat-5: #d55181; --cat-6: #9085e9; --cat-7: #e66767; --cat-8: #8a9aa6;
     --bolt-bg: var(--pale-sky); --bolt-ink: var(--baltic-blue);
     color-scheme: dark;
   }
@@ -53,6 +54,7 @@
       --page: radial-gradient(120% 60% at 100% 0%, rgba(75,163,195,.28), transparent 60%), var(--pale-sky);
       --sheet-bg: #ffffff;
       --c-pk: #1590c8; --c-tm: #d62839; --c-one: #175676; --grid: rgba(23,86,118,.12);
+      --cat-1: #2a78d6; --cat-2: #eb6834; --cat-3: #1baf7a; --cat-4: #eda100; --cat-5: #e87ba4; --cat-6: #6250d6; --cat-7: #e34948; --cat-8: #8a9aa6;
       --card: #ffffff;
       --raised: rgba(23,86,118,.08);
       --line: rgba(23,86,118,.14);
@@ -289,6 +291,23 @@
   .note2 { font-size: 12.5px; color: var(--muted); margin-top: 10px; line-height: 1.45; }
   details.tv { margin-top: 10px; font-size: 13px; color: var(--muted); }
   details.tv summary { cursor: pointer; color: var(--turquoise-surf); font-weight: 600; }
+  .carcost { padding: 12px 0 4px; border-top: 1px solid var(--line); }
+  .carcost:first-of-type { border-top: 0; padding-top: 4px; }
+  .cc-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 16px; }
+  .cc-head span { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .cc-kpi { display: flex; gap: 18px; font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .cc-kpi b { color: var(--ink); font-size: 17px; font-variant-numeric: tabular-nums; }
+  .cbar { display: flex; gap: 2px; height: 14px; border-radius: 5px; overflow: hidden; margin: 10px 0 6px; }
+  .cbar i { display: block; min-width: 3px; }
+  .crows { font-size: 14px; }
+  .crow { display: grid; grid-template-columns: 1fr 48px 74px 64px; gap: 6px; align-items: center; padding: 5px 0; font-variant-numeric: tabular-nums; }
+  .crow span:first-child { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .crow i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+  .crow .pc, .crow .val, .crow .per { text-align: right; white-space: nowrap; }
+  .crow .pc, .crow .per { color: var(--muted); }
+  .crow .val { font-weight: 650; }
+  .crow.h { font-size: 11.5px; color: var(--muted); padding: 2px 0; }
+  .crow.h .val { font-weight: 600; }
   /* ---------- Sonstiges ---------- */
   .card2 h4 { display: flex; align-items: center; gap: 8px; }
   .card2 h4 .ic { width: 20px; height: 20px; color: var(--turquoise-surf); }
@@ -935,7 +954,9 @@ function renderStats() {
     (byCar[t.car] = byCar[t.car] || { PK: 0, TM: 0 })[t.h] += t.km;
   });
   var costTot = 0;
-  costs.forEach(function (c) { costTot += c.amount; costCar[c.car] = (costCar[c.car] || 0) + c.amount; byCat[c.cat] = (byCat[c.cat] || 0) + c.amount; });
+  var carCat = {};
+  costs.forEach(function (c) { costTot += c.amount; costCar[c.car] = (costCar[c.car] || 0) + c.amount; byCat[c.cat] = (byCat[c.cat] || 0) + c.amount;
+    var cc = carCat[c.car] = carCat[c.car] || {}; cc[c.cat] = (cc[c.cat] || 0) + c.amount; });
   var per100 = kmTot ? costTot / kmTot * 100 : 0, pkShare = kmTot ? kmH.PK / kmTot : 0;
   var rangeTxt = { '12m': 'letzte 12 Monate', year: 'seit Jänner', all: 'seit Beginn' }[ST_RANGE];
 
@@ -968,23 +989,38 @@ function renderStats() {
 
   // pro Auto
   var cars = ['Schwitzkarre', 'Julia Brettner'].filter(carOk);
-  h += '<div class="card2"><h4>Pro Auto</h4><div class="sub">' + rangeTxt + '</div><table class="tbl"><tr><th>Auto</th><th class="r">km</th><th class="r">Kosten</th><th class="r">€/100 km</th></tr>'
+  h += '<div class="card2"><h4>Pro Auto</h4><div class="sub">' + rangeTxt + '</div>'
     + cars.map(function (c) {
-        var k = byCar[c] ? byCar[c].PK + byCar[c].TM : 0, co = costCar[c] || 0;
-        return '<tr><td>' + esc(c) + '</td><td class="r">' + fmt(k) + '</td><td class="r">' + eur0(co) + '</td><td class="r">' + (k ? (co / k * 100).toLocaleString('de-AT', { maximumFractionDigits: 1 }) : '–') + '</td></tr>';
-      }).join('') + '</table>'
+        var k = byCar[c] ? byCar[c].PK + byCar[c].TM : 0, co = costCar[c] || 0, cc = carCat[c] || {};
+        var parts = CAT_ORDER.filter(function (x) { return cc[x] > 0; })
+          .concat(Object.keys(cc).filter(function (x) { return CAT_ORDER.indexOf(x) < 0 && cc[x] > 0; }));
+        var bar = co > 0 ? '<div class="cbar" role="img" aria-label="Kostenaufteilung ' + esc(c) + '">' + parts.map(function (x) {
+            return '<i style="flex:' + cc[x] + ';background:' + catColor(x) + '" title="' + esc(x) + ' ' + eur0(cc[x]) + '"></i>'; }).join('') + '</div>' : '';
+        var rows = parts.map(function (x) {
+          return '<div class="crow"><span><i style="background:' + catColor(x) + '"></i>' + esc(x) + '</span><span class="pc">' + Math.round(cc[x] / co * 100) + ' %</span>'
+            + '<span class="val">' + eur0(cc[x]) + '</span><span class="per">' + (k ? (cc[x] / k * 100).toLocaleString('de-AT', { maximumFractionDigits: 1 }) + ' €' : '–') + '</span></div>';
+        }).join('');
+        return '<div class="carcost"><div class="cc-head"><b>' + esc(c) + '</b><span>' + fkm(k) + '</span></div>'
+          + '<div class="cc-kpi"><span><b>' + eur0(co) + '</b> Kosten</span><span><b>' + (k ? (co / k * 100).toLocaleString('de-AT', { maximumFractionDigits: 1 }) + ' €' : '–') + '</b> pro 100 km</span></div>'
+          + (co > 0 ? bar + '<div class="crows"><div class="crow h"><span></span><span class="pc">Anteil</span><span class="val">Betrag</span><span class="per">/100 km</span></div>' + rows + '</div>'
+                    : '<div class="empty">Keine Ausgaben im Zeitraum</div>') + '</div>';
+      }).join('')
     + '<div class="note2">Kosten = alle erfassten Ausgaben im Zeitraum (inkl. Versicherung). MG5-Ladekosten sind bis zur letzten manuellen Ladeabrechnung enthalten, danach monatlich über die Ladestation (Strompreis im Reiter „Sonstiges“).</div></div>';
 
   // Kosten nach Kategorie
   var cats = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; }), cmax = cats.length ? byCat[cats[0]] : 1;
   h += '<div class="card2"><h4>Kosten nach Kategorie</h4><div class="sub">' + rangeTxt + '</div>'
     + (cats.length ? cats.map(function (c) {
-        return '<div class="hbar"><span class="n">' + esc(c) + '</span><span class="b" style="width:' + (byCat[c] / cmax * 100) + '%;background:var(--c-one)"></span><span class="val">' + eur0(byCat[c]) + '</span></div>';
+        return '<div class="hbar"><span class="n">' + esc(c) + '</span><span class="b" style="width:' + (byCat[c] / cmax * 100) + '%;background:' + catColor(c) + '"></span><span class="val">' + eur0(byCat[c]) + '</span></div>';
       }).join('') : '<div class="empty">Keine Ausgaben im Zeitraum</div>') + '</div>';
 
   $('st-body').innerHTML = h;
   drawMonthChart(months, byM);
 }
+
+// Kategorie-Farben: Referenzpalette (dataviz), Stapelreihenfolge = Slot-Reihenfolge
+var CAT_ORDER = ['Versicherung', 'Tanken', 'Laden', 'Service', 'Reifen', 'Sonstiges', 'Schaden'];
+function catColor(c) { var i = CAT_ORDER.indexOf(c); return 'var(--cat-' + (i < 0 ? 8 : i + 1) + ')'; }
 
 function drawMonthChart(months, byM) {
   var el = $('ch-month'), W = Math.max(300, el.clientWidth || 320), H = 190, padL = 34, padB = 22, padT = 8;

@@ -66,7 +66,7 @@ Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertra
 **Statistik** *(ab v2.5)*
 - Dritter Reiter mit Zeitraum (12 Monate / dieses Jahr / gesamt) und Auto-Filter
 - Kennzahlen: gefahrene km, Kosten, €/100 km, Anteil der Haushalte
-- km pro Monat (gestapelt nach Haushalt, antippen für Details, auch als Tabelle), km pro Person, Kosten pro Auto und nach Kategorie
+- km pro Monat (gestapelt nach Haushalt, antippen für Details, auch als Tabelle), km pro Person, Kosten pro Auto mit Aufschlüsselung nach Kategorie (Balken, Anteil, Betrag, €/100 km) und Kosten nach Kategorie
 
 ![Statistik](docs/statistik.png)
 
