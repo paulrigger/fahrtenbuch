@@ -1,5 +1,5 @@
 /**
- * Fahrtenbuch API – v2.6 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
+ * Fahrtenbuch API – v2.7 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
  *
  * Bereitstellen als Web-App:  Ausführen als: Ich   |   Zugriff: Jeder
  * Einmalig: Funktion setup() ausführen -> API-Key steht im Log (Ausführungsprotokoll).
@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.6';
+const VERSION = '2.7';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -67,6 +67,7 @@ function doGet(e) {
     if (action === 'expenses') { ensureRecurring_(); return expensesResponse_(); }
     if (action === 'stats') return statsResponse_();
     if (action === 'misc') return miscResponse_();
+    if (action === 'trips') return tripsResponse_(p.sheet);
     throw new Error('Unbekannte Aktion: ' + action);
   });
 }
@@ -78,13 +79,14 @@ function doPost(e) {
     if (['addExpense', 'updateExpense', 'deleteExpense'].indexOf(d.action) >= 0) {
       return expenseAction_(d.action, d, checkDriver_(d.driver));
     }
-    if (['addOrder', 'changeOrderAmount', 'endOrder', 'confirmDraft'].indexOf(d.action) >= 0) {
+    if (['addOrder', 'changeOrderAmount', 'changeOrderDay', 'endOrder', 'confirmDraft'].indexOf(d.action) >= 0) {
       return orderAction_(d.action, d, checkDriver_(d.driver));
     }
     if (d.action === 'charging') {   // Node-RED: monatlicher Verbrauch der Ladestation
       return chargingAction_(d, d.driver ? checkDriver_(d.driver) : String(d.source || 'Node-RED').slice(0, 30));
     }
     if (d.action === 'setPrice') return priceAction_(d, checkDriver_(d.driver));
+    if (['tripEdit', 'tripInsert', 'tripDelete'].indexOf(d.action) >= 0) return tripAction_(d.action, d, checkDriver_(d.driver));
     if (['settle', 'confirmSettlement', 'cancelSettlement'].indexOf(d.action) >= 0) {
       return settlementAction_(d.action, d, checkDriver_(d.driver));
     }
@@ -457,7 +459,7 @@ function validateExpense_(x) {
     car: String(x.car || ''), cat: String(x.cat || ''), amount: num_(x.amount),
     payer: hhCode_(x.payer) || '', split: x.split ? splitCode_(x.split) : '', km: num_(x.km),
     liter: num_(x.liter), full: bool_(x.full), note: String(x.note || '').slice(0, 300),
-    status: x.status ? String(x.status) : 'offen'
+    status: x.status ? String(x.status) : 'offen', fixShare: num_(x.fixShare)
   };
   if (!CARS[e.car]) throw new Error('Bitte ein Auto wählen.');
   if (CATEGORIES.indexOf(e.cat) < 0) throw new Error('Unbekannte Kategorie: ' + e.cat);
@@ -466,6 +468,7 @@ function validateExpense_(x) {
   if (e.cat === 'Tanken' && e.car !== TANK_CAR) throw new Error('Tanken gibt es nur bei der Julia Brettner.');
   if (!e.split) e.split = e.cat === 'Tanken' ? 'km' : '50:50';
   if (SPLITS.indexOf(e.split) < 0) throw new Error('Unbekannte Aufteilung: ' + e.split);
+  if (e.split === 'fix' && e.fixShare != null && (e.fixShare < 0 || e.fixShare > 1)) throw new Error('Aufteilung bitte zwischen 0 und 100 %.');
   if (e.split === 'km' && e.cat !== 'Tanken') throw new Error('Aufteilung nach km gibt es nur beim Tanken.');
   if (e.split === 'km' && e.km == null) throw new Error('Bitte den km-Stand beim Tanken angeben.');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(e.date)) throw new Error('Ungültiges Datum.');
@@ -480,7 +483,8 @@ function expenseAction_(action, d, driver) {
       const e = validateExpense_(d.expense || {});
       const id = 'B' + now.getTime().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36).toUpperCase();
       if (readExpenses_().some(function (x) { return x.id === id; })) throw new Error('Bitte nochmal speichern.');
-      sh.appendRow([id, e.date, e.car, e.cat, e.amount, HH_LABELS[e.payer], splitLabel_(e.split), '', e.km == null ? '' : e.km,
+      sh.appendRow([id, e.date, e.car, e.cat, e.amount, HH_LABELS[e.payer], splitLabel_(e.split),
+                    e.split === 'fix' ? (e.fixShare == null ? 0.5 : e.fixShare) : '', e.km == null ? '' : e.km,
                     e.liter == null ? '' : e.liter, e.cat === 'Tanken' ? e.full : '', e.note, 'offen', driver, '', '']);
       return { id: id, mode: 'added' };
     }
@@ -499,7 +503,7 @@ function expenseAction_(action, d, driver) {
     if (hit.status !== 'offen') throw new Error('Buchungen in einer Abrechnung können nicht geändert werden.');
     if (/^Laden@/.test(hit.order)) throw new Error('Diese Buchung kommt automatisch von der Ladestation.');
     const e = validateExpense_(Object.assign({}, hit, x));
-    const fix = e.split === 'fix' ? (hit.fixShare == null ? 0.5 : hit.fixShare) : '';
+    const fix = e.split === 'fix' ? (num_(x.fixShare) != null ? e.fixShare : hit.fixShare == null ? 0.5 : hit.fixShare) : '';
     sh.getRange(hit.row, 2, 1, 15).setValues([[e.date, e.car, e.cat, e.amount, HH_LABELS[e.payer], splitLabel_(e.split), fix,
       e.km == null ? '' : e.km, e.liter == null ? '' : e.liter, e.cat === 'Tanken' ? e.full : '',
       e.note, e.status, hit.createdBy, driver, now]]);
@@ -685,27 +689,35 @@ function nextDue_(o) {
   return o.until && n > o.until ? '' : n;
 }
 
+/** "ID@JJJJ-MM-TT" -> "ID#JJJJ-MM": höchstens eine Buchung je Auftrag und Monat,
+ *  damit ein geänderter Fälligkeitstag nicht doppelt bucht (gilt auch für jährliche Aufträge). */
+function periodKey_(key) {
+  const p = String(key).split('@');
+  return p.length === 2 && /^\d{4}-\d{2}/.test(p[1]) ? p[0] + '#' + p[1].slice(0, 7) : key;
+}
+
 /** legt fehlende Buchungen bis heute an (idempotent über Schlüssel ID@Datum in Spalte T) */
 function ensureRecurring_() {
   const orders = readOrders_();
   if (!orders.length) return 0;
   const t = today_();
   const have = {};
-  readExpenses_().forEach(function (e) { if (e.order) have[e.order] = true; });
+  readExpenses_().forEach(function (e) { if (e.order) { have[e.order] = true; have[periodKey_(e.order)] = true; } });
   const todo = [];
   orders.forEach(function (o) {
     dueDates_(o, t).forEach(function (d) {
       const key = o.id + '@' + d;
-      if (!have[key]) todo.push({ o: o, d: d, key: key });
+      if (!have[key] && !have[periodKey_(key)]) todo.push({ o: o, d: d, key: key });
     });
   });
   if (!todo.length) return 0;
   withLock_(function () {
     const fresh = {};
-    readExpenses_().forEach(function (e) { if (e.order) fresh[e.order] = true; });
+    readExpenses_().forEach(function (e) { if (e.order) { fresh[e.order] = true; fresh[periodKey_(e.order)] = true; } });
     const sh = expSheet_();
     todo.forEach(function (x, i) {
-      if (fresh[x.key]) return;
+      if (fresh[x.key] || fresh[periodKey_(x.key)]) return;
+      fresh[periodKey_(x.key)] = true;
       const o = x.o, draft = o.interval === 'jährlich';
       const id = 'B' + new Date().getTime().toString(36).toUpperCase() + i.toString(36).toUpperCase();
       const row = [id, x.d, o.car, o.cat, amountAt_(o, x.d), HH_LABELS[o.payer], splitLabel_(o.split), '', '', '', '',
@@ -772,7 +784,9 @@ function orderAction_(action, d, driver) {
       if (adj && !/^\d{1,2}\.\d{1,2}\.?$/.test(adj)) throw new Error('Anpassung bitte als TT.MM angeben, z. B. 01.10');
       const f = ymd_(first), id = 'D' + now.getTime().toString(36).toUpperCase() + Math.floor(Math.random() * 1296).toString(36).toUpperCase();
       if (readOrders_().some(function (o) { return o.id === id; })) throw new Error('Bitte nochmal speichern.');
-      sh.appendRow([id, x.car, cat, label, amt, interval, f.d, interval === 'jährlich' ? f.m : '', first, '',
+      const day = x.day ? Math.round(num_(x.day)) : f.d;
+      if (!(day >= 1 && day <= 31)) throw new Error('Fälligkeitstag bitte zwischen 1 und 31.');
+      sh.appendRow([id, x.car, cat, label, amt, interval, day, interval === 'jährlich' ? f.m : '', first, '',
                     HH_LABELS[payer], splitLabel_(split), adj.replace(/\.$/, ''), driver]);
       return { id: id, mode: 'orderAdded' };
     }
@@ -791,6 +805,12 @@ function orderAction_(action, d, driver) {
         }
       });
       return { id: o.id, mode: 'amountChanged' };
+    }
+    if (action === 'changeOrderDay') {
+      const day = Math.round(num_(d.day));
+      if (!(day >= 1 && day <= 31)) throw new Error('Fälligkeitstag bitte zwischen 1 und 31.');
+      o.stages.forEach(function (st) { sh.getRange(st.row, 7).setValue(day); });
+      return { id: o.id, mode: 'dayChanged' };
     }
     // endOrder
     const until = fmtDate_(d.until) || today_();
@@ -860,6 +880,66 @@ function statsResponse_() {
     trips: statsTrips_(),
     costs: Object.keys(costs).map(function (k) { const c = costs[k]; c.amount = Math.round(c.amount * 100) / 100; return c; })
   };
+}
+
+// ================================================================ Fahrtenbuch-Einträge (v2.7)
+//
+// GET  action=trips&sheet=<Auto>  -> rows[{row, date, start, end, driver, p, h}] in Sheet-Reihenfolge
+// POST tripEdit   {sheet, row, expect:{start,end}, date, start, end, who}
+//      tripInsert {sheet, afterRow, expect:{start,end}, date, start, end, who}   (z. B. Lücke füllen)
+//      tripDelete {sheet, row, expect:{start,end}}
+// "expect" schützt vor Änderungen an einer inzwischen verschobenen Zeile.
+
+function tripsResponse_(sheetName) {
+  if (!CARS[sheetName]) throw new Error('Unbekanntes Auto: ' + sheetName);
+  const sh = sheet_(sheetName), n = sh.getLastRow(), tz = Session.getScriptTimeZone();
+  const rows = [];
+  if (n >= 2) {
+    sh.getRange(2, 1, n - 1, 5).getValues().forEach(function (r, i) {
+      const s = num_(r[1]), e = num_(r[2]);
+      if (s == null && e == null && isEmpty_(r[4])) return;
+      const drv = String(r[4] || '').trim();
+      const p = DRIVERS.filter(function (d) { return drv.toLowerCase().indexOf(d.toLowerCase()) >= 0; })[0] || null;
+      rows.push({ row: i + 2, date: r[0] instanceof Date ? Utilities.formatDate(r[0], tz, 'yyyy-MM-dd') : fmtDate_(String(r[0] || '').trim()),
+                  start: s, end: e, driver: drv, p: p, h: p ? HOUSEHOLDS[p] : null });
+    });
+  }
+  return { ok: true, sheet: sheetName, rows: rows, drivers: DRIVERS, households: HOUSEHOLDS };
+}
+
+function tripAction_(action, d, driver) {
+  const sheetName = String(d.sheet || '');
+  if (!CARS[sheetName]) throw new Error('Unbekanntes Auto: ' + sheetName);
+  withLock_(function () {
+    const sh = sheet_(sheetName);
+    const row = Math.round(num_(action === 'tripInsert' ? d.afterRow : d.row));
+    if (!(row >= 2 && row <= sh.getLastRow())) throw new Error('Eintrag nicht gefunden – bitte neu laden.');
+    const cur = sh.getRange(row, 1, 1, 5).getValues()[0];
+    const ex = d.expect || {};
+    const same = function (a, b) { return (num_(a) == null && num_(b) == null) || num_(a) === num_(b); };
+    if (!same(cur[1], ex.start) || !same(cur[2], ex.end)) throw new Error('Der Eintrag wurde inzwischen geändert – bitte neu laden.');
+    if (action === 'tripDelete') { sh.deleteRow(row); return; }
+
+    const who = DRIVERS.filter(function (x) { return x.toLowerCase() === String(d.who || '').trim().toLowerCase(); })[0];
+    if (!who) throw new Error('Bitte auswählen, wer gefahren ist.');
+    const start = toKM_(d.start, 'Start-KM');
+    const endEmpty = isEmpty_(d.end);
+    const isLast = action === 'tripEdit' && row === state_(sheetName, sh).row;
+    if (endEmpty && !isLast) throw new Error('Bitte den End-km-Stand angeben.');
+    const end = endEmpty ? '' : toKM_(d.end, 'End-KM');
+    if (!endEmpty) checkTrip_(start, end);
+    const iso = fmtDate_(d.date);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) throw new Error('Bitte ein gültiges Datum wählen.');
+    const p = ymd_(iso), date = new Date(p.y, p.m - 1, p.d, 12);
+    let target = row;
+    if (action === 'tripInsert') { sh.insertRowAfter(row); target = row + 1; }
+    sh.getRange(target, 1, 1, 5).setValues([[date, start, end, '', who]]);
+    if (endEmpty) sh.getRange(target, 4).setValue(''); else setDiffFormula_(sh, target);
+  });
+  try { writeComputed_(); } catch (e) {}
+  const out = tripsResponse_(sheetName);
+  out.cars = Object.keys(CARS).map(getStatus);
+  return out;
 }
 
 // ================================================================ Sonstiges (v2.6)

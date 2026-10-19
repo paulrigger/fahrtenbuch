@@ -70,7 +70,8 @@ Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertra
 
 ![Statistik](docs/statistik.png)
 
-**Sonstiges** *(ab v2.6)*
+**Sonstiges** *(ab v2.6, Menü mit Unterseiten)*
+- **Fahrtenbuch** *(v2.7)*: alle Einträge je Auto, Lücken und Überschneidungen markiert, unbekannte Fahrer:innen; Einträge bearbeiten/löschen, Lücke mit einem Tipp als Fahrt eintragen
 - **Auflösung simulieren** nach Vertrag §5: zwei Marktwerte eintragen (Restwert der Ladeinfrastruktur wird automatisch mit 10 %/Jahr gerechnet oder überschrieben). Wertverlust der Autos 30 % je zur Hälfte, 70 % nach km je Auto seit Vertragsbeginn; daraus Wertverlust- und Restwert-Ausgleich und die Gesamtzahlung zwischen den Haushalten. Nur Hochrechnung, es wird nichts gebucht.
 - **Strompreis der Ladestation** in ct/kWh mit „gültig ab“ (Historie bleibt)
 - **Ladekosten automatisch**: Node-RED schickt einmal im Monat den Verbrauch der Ladestation; daraus entsteht die Buchung „Laden“ (kWh × Preis), aufgeteilt nach den km der Schwitzkarre im jeweiligen Monat
@@ -211,6 +212,7 @@ Alle Antworten sind JSON, Fehler immer als `{ "ok": false, "error": "…" }`.
 |---|---|
 | `?key=…&action=all` | `version`, `drivers`, `households`, `hhLabels`, `sheetUrl`, `cars[]` |
 | `?key=…&action=stats` | `trips[{m, car, p, h, km}]`, `costs[{m, car, cat, amount}]` (Monatswerte) |
+| `?key=…&action=trips&sheet=…` | `rows[{row, date, start, end, driver, p, h}]` in Sheet-Reihenfolge |
 | `?key=…&action=misc` | `contract{start, assets[], ladeRatePct, equalPct}`, `prices[]`, `chargingPayer`, `charging[]`, `trips[]`, `sheetUrl`, `contractUrl` |
 | `?key=…&action=expenses` | `expenses[]`, `saldo`, `saldoProvisional`, `tankWindow`, `categories` |
 
@@ -232,6 +234,10 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | `settle` | – | offenen Saldo abrechnen (nur zahlende Seite) |
 | `confirmSettlement` | `id` | Erhalt bestätigen (nur empfangende Seite) |
 | `cancelSettlement` | `id` | Abrechnung zurückziehen (nur zahlende Seite) |
+| `tripEdit` | `sheet`, `row`, `expect{start,end}`, `date`, `start`, `end`, `who` | Fahrt korrigieren (`expect` = bisherige Werte, Schutz vor verschobenen Zeilen) |
+| `tripInsert` | `sheet`, `afterRow`, `expect`, `date`, `start`, `end`, `who` | Fahrt einfügen, z. B. Lücke füllen |
+| `tripDelete` | `sheet`, `row`, `expect` | Fahrt löschen |
+| `changeOrderDay` | `id`, `day` (1–31) | Fälligkeitstag eines Dauerauftrags ändern (max. eine Buchung je Monat) |
 | `setPrice` | `ct`, `from` | Strompreis ab Datum (gleiches Datum = überschreiben) |
 | `charging` | `month` (`JJJJ-MM`), `kwh`, `source?` | Monatsverbrauch der Ladestation buchen – **ohne `driver`** (für Node-RED). Erneuter Aufruf für denselben Monat aktualisiert die Buchung, solange sie nicht abgerechnet ist |
 
@@ -249,7 +255,7 @@ return msg;
 
 Apps Script antwortet auf POST mit einer Weiterleitung – im HTTP-Request-Node „Weiterleitungen folgen“ aktiv lassen.
 
-`split`: `km` (nur Tanken) · `50:50` · `PK` · `TM` · `fix` (Altdaten) · `kmMonat` (nur Laden von der Ladestation).
+`split`: `km` (nur Tanken) · `50:50` · `PK` · `TM` · `fix` + `fixShare` (0–1, Anteil erster Haushalt – eigene Aufteilung, z. B. 0.8) · `kmMonat` (nur Laden von der Ladestation).
 
 ---
 
@@ -333,6 +339,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.7** | Fahrtenbuch-Seite mit Lücken/Korrekturen, eigene Aufteilung bei Ausgaben, Fälligkeitstag bei Daueraufträgen, Menü unter „Sonstiges“ |
 | **2.6** | Reiter „Sonstiges“: Auflösung nach Vertrag §5 simulieren, Strompreis pflegen, Ladekosten über Node-RED (`charging`), Links zu Sheet und Vertrag |
 | **2.5** | Statistik-Reiter; rote Zahl am Tab „Ausgaben" für offene Aufgaben |
 | **2.4** | Daueraufträge (Versicherung), Entwürfe für jährliche Beträge, Erinnerung vor Anpassung; Kategorien reduziert |

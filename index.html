@@ -299,6 +299,39 @@
   .backbtn .ic { width: 18px; height: 18px; transform: rotate(90deg); }
   .backbtn[hidden], .msub[hidden] { display: none; }
   .msub { margin-top: 0; }
+  .seg.wrap { display: grid; grid-template-columns: 1fr 1fr; } .seg.wrap button { padding: 12px 8px; }
+  .tbsum { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 4px; font-size: 13px; }
+  .tbsum span { padding: 4px 10px; border-radius: 999px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+  .tbsum .bad { background: var(--warn-bg); color: var(--warn-ink); }
+  .tbsum .ok { background: var(--raised); color: var(--ink); } .tbsum .ok .ic { width: 15px; height: 15px; }
+  .tblist { margin-top: 8px; }
+  .ti { display: flex; align-items: center; gap: 12px; padding: 10px 2px; border-top: 1px solid var(--line); cursor: pointer; }
+  .ti:first-child { border-top: 0; }
+  .ti .d { width: 46px; flex: none; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .ti .d small { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+  .ti .d.inh { color: var(--muted); font-weight: 500; }
+  .ti .m { flex: 1; min-width: 0; }
+  .ti .m b { display: flex; align-items: center; gap: 7px; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ti .m span { display: block; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .ti .r { flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
+  .tgap { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 0 6px; padding: 10px 12px; border-radius: 14px;
+          background: var(--err-bg); color: var(--err-ink); font-size: 14px; }
+  .tgap.warn { background: var(--warn-bg); color: var(--warn-ink); }
+  .tgap > span { display: flex; align-items: flex-start; gap: 8px; }
+  .tgap .ic { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+  .tgap small { display: block; font-size: 12.5px; opacity: .85; }
+  .tgap .btn { flex: none; padding: 8px 12px; font-size: 14px; }
+  .fixbox { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: var(--raised); }
+  .fixlbl { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
+  .fixlbl b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .fixbox input[type=range] { width: 100%; padding: 0; margin: 10px 0 6px; border: 0; background: transparent; accent-color: var(--c-pk); height: 28px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips button { border: 1px solid var(--line); background: var(--card); color: var(--ink); font: inherit; font-size: 13px; font-weight: 600;
+                  padding: 6px 10px; border-radius: 999px; font-variant-numeric: tabular-nums; cursor: pointer; }
+  .chips button.on { background: var(--primary); color: var(--primary-ink); border-color: transparent; }
+  select.daysel { width: 100%; font: inherit; font-size: 17px; font-weight: 600; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line);
+                  background: var(--raised); color: var(--ink); min-height: 54px; }
   .carcost { padding: 12px 0 4px; border-top: 1px solid var(--line); }
   .carcost:first-of-type { border-top: 0; padding-top: 4px; }
   .cc-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 16px; }
@@ -412,11 +445,12 @@
 
   <div class="news" id="news" hidden>
     <button class="x" aria-label="Schließen" onclick="hideNews()" data-i="x"></button>
-    <b><span data-i="sparkles"></span>Neu in Version 2.6</b>
+    <b><span data-i="sparkles"></span>Neu in Version 2.7</b>
     <ul>
-      <li><b style="display:inline">Sonstiges</b>: Auflösung nach Vertrag simulieren, Strompreis der Ladestation pflegen, Link zum Google Sheet</li>
-      <li>Ladekosten der Schwitzkarre kommen künftig monatlich automatisch von der Ladestation</li>
-      <li><b style="display:inline">Statistik</b>: km pro Monat und Person, Anteile, Kosten und €/100 km</li>
+      <li><b style="display:inline">Fahrtenbuch</b> unter „Sonstiges“: alle Einträge ansehen und korrigieren, Lücken direkt füllen</li>
+      <li>Ausgaben: <b style="display:inline">eigene Aufteilung</b>, z. B. 80/20 oder 90/10</li>
+      <li>Daueraufträge: Fälligkeitstag frei wählbar (z. B. am 15.)</li>
+      <li>„Sonstiges“ mit Menü: Auflösung simulieren, Strompreis, Siri-Kurzbefehle, Links</li>
     </ul>
   </div>
 
@@ -442,6 +476,7 @@
   <section id="view-misc" hidden>
     <div class="card2 mmenu" id="m-menu" style="margin-top:0"><div class="skeleton" style="height:160px"></div></div>
     <button class="backbtn" id="m-back" onclick="miscOpen('')" hidden><span data-i="chevron"></span>Sonstiges</button>
+    <div class="card2 msub" id="m-trips" hidden></div>
     <div class="card2 msub" id="m-auf" hidden></div>
     <div class="card2 msub" id="m-strom" hidden></div>
     <div class="card2 msub" id="m-siri" hidden></div>
@@ -458,7 +493,7 @@
   <button id="tab-misc" onclick="showView('misc')"><span data-i="dots"></span>Sonstiges</button>
 </nav>
 
-<div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp(); closeOrd()"></div>
+<div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp(); closeOrd(); closeTrip()"></div>
 
 <div class="dialog tall" id="xdlg" role="dialog" aria-modal="true">
   <div class="grab"></div>
@@ -478,7 +513,13 @@
     <label class="check"><input type="checkbox" id="x-full" checked> Vollgetankt</label>
   </div>
   <div class="fgroup"><label>Bezahlt von</label><div class="seg" id="x-payer"></div></div>
-  <div class="fgroup" id="x-split-wrap"><label>Aufteilung</label><div class="seg col" id="x-split"></div></div>
+  <div class="fgroup" id="x-split-wrap"><label>Aufteilung</label><div class="seg col" id="x-split"></div>
+    <div class="fixbox" id="x-fix">
+      <div class="fixlbl"><span id="x-fix-pk"></span><span id="x-fix-tm"></span></div>
+      <input type="range" id="x-fix-range" min="0" max="100" step="5" oninput="setFix(this.value)">
+      <div class="chips" id="x-fix-chips"></div>
+    </div>
+  </div>
   <div class="fgroup"><label for="x-note">Notiz (optional)</label><input id="x-note" class="small" type="text" autocomplete="off" maxlength="300" placeholder="z. B. Pickerl 2026"></div>
   <div class="preview" id="x-preview"></div>
   <div class="msg" id="x-msg"></div>
@@ -512,6 +553,25 @@
   <div class="row" style="grid-template-columns:1fr"><button class="btn ghost" id="picker-cancel" onclick="closePicker()">Abbrechen</button></div>
 </div>
 
+<div class="dialog tall" id="tdlg" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <h3 id="t-title">Fahrt bearbeiten</h3>
+  <p class="sub" id="t-sub"></p>
+  <div class="fgroup"><label for="t-date">Datum</label><input id="t-date" type="date"></div>
+  <div class="fields fgroup">
+    <div><label for="t-start">Start-km</label><input id="t-start" type="text" inputmode="numeric" autocomplete="off" oninput="renderTF()"></div>
+    <div><label for="t-end">End-km</label><input id="t-end" type="text" inputmode="numeric" autocomplete="off" oninput="renderTF()"></div>
+  </div>
+  <div class="infoline" id="t-km" style="text-align:right;min-height:20px"></div>
+  <div class="fgroup"><label>Wer ist gefahren?</label><div class="seg wrap" id="t-who"></div></div>
+  <div class="msg" id="t-msg"></div>
+  <div class="row">
+    <button class="btn ghost" onclick="closeTrip()">Abbrechen</button>
+    <button class="btn primary" id="t-ok" onclick="saveTrip()">Speichern</button>
+  </div>
+  <button class="linkbtn" id="t-del" onclick="deleteTrip()"><span data-i="trash"></span>Fahrt löschen</button>
+</div>
+
 <div class="dialog tall" id="odlg" role="dialog" aria-modal="true">
   <div class="grab"></div>
   <h3 id="o-title">Dauerauftrag</h3>
@@ -524,6 +584,11 @@
     <div class="fields">
       <div><label for="o-newamt">Neuer Betrag (€)</label><input id="o-newamt" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
       <div><label for="o-from">gültig ab</label><input id="o-from" type="date"></div>
+    </div>
+    <div class="sectitle">Fälligkeitstag</div>
+    <div class="fields">
+      <div><select id="o-day" class="daysel"></select></div>
+      <div><button class="btn ghost" id="o-daysave" style="width:100%;min-height:54px" onclick="saveOrdDay()">Tag ändern</button></div>
     </div>
     <div class="msg" id="o-msg"></div>
     <div class="row">
@@ -538,8 +603,9 @@
     <div class="fgroup"><label for="on-label">Bezeichnung</label><input id="on-label" class="small" type="text" autocomplete="off" maxlength="80" placeholder="z. B. Versicherung T5"></div>
     <div class="fields fgroup">
       <div><label for="on-amt">Betrag (€)</label><input id="on-amt" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
-      <div><label for="on-first">Erste Fälligkeit</label><input id="on-first" type="date"></div>
+      <div><label for="on-first">Ab (erste Fälligkeit)</label><input id="on-first" type="date" onchange="$('on-day').value = Math.min(31, +this.value.slice(8, 10) || 1)"></div>
     </div>
+    <div class="fgroup"><label for="on-day">Fällig am</label><select id="on-day" class="daysel"></select></div>
     <div class="fgroup"><label>Intervall</label><div class="seg" id="on-int"></div></div>
     <div class="fgroup"><label>Bezahlt von</label><div class="seg" id="on-payer"></div></div>
     <div class="fgroup"><label for="on-adj">Jährliche Anpassung am (optional, TT.MM)</label><input id="on-adj" class="small" type="text" inputmode="numeric" autocomplete="off" placeholder="z. B. 01.10"></div>
@@ -566,7 +632,7 @@ var QS = new URLSearchParams(location.search);
 var KEY = QS.get('k') || sget('fb-key') || '';
 if (QS.get('k')) sset('fb-key', QS.get('k'));
 var ME = sget('fb-driver') || '';
-var APP_VERSION = '2.6';
+var APP_VERSION = '2.7';
 var DEMO = QS.has('demo') || API_URL.indexOf('HIER_') >= 0;
 
 /* ---------- API ---------- */
@@ -585,7 +651,7 @@ function apiPost(body) {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.6 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.7 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -596,6 +662,7 @@ function mock(b) {
     if (b.action === 'expenses') return res(mockExp());
     if (b.action === 'stats') return res(mockStats());
     if (b.action === 'misc') return res(mockMisc());
+    if (/^trip/.test(b.action)) { try { return res(mockTrips(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
     if (b.action === 'setPrice') { MOCK_PRICES = MOCK_PRICES.filter(function (p) { return p.from !== b.from; }).concat([{ from: b.from, ct: +b.ct, by: b.driver }]); return res(mockMisc()); }
     if (/Expense$|ettle|Order|Draft/.test(b.action)) { try { return res(mockExpAction(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
     var c = MOCK.cars.filter(function (x) { return x.sheet === b.sheet; })[0];
@@ -625,6 +692,39 @@ function mockStats() {
     if (i === 10) costs.push({ m: m, car: 'Schwitzkarre', cat: 'Versicherung', amount: 497.84 });
   }
   return { ok: true, trips: trips, costs: costs };
+}
+
+var MOCKT = (function () {
+  var o = {}, ppl = ['Anna', 'Ben', 'Clara', 'David'], hh = { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' };
+  [['Schwitzkarre', 8200, 10000, true], ['Julia Brettner', 47800, 50042, false]].forEach(function (cfg, ci) {
+    var rows = [], km = cfg[1], seed = 3 + ci, dt = new Date(); dt.setDate(dt.getDate() - 70);
+    function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+    for (var i = 0; km < cfg[2]; i++) {
+      var len = Math.max(4, Math.round(rnd() * 90)), p = ppl[Math.floor(rnd() * 4)];
+      if (i === 6) km += 23;                       // Lücke
+      var s = km; if (i === 11) s -= 6;             // Überschneidung
+      var e = Math.min(s + len, cfg[2]); dt.setDate(dt.getDate() + (rnd() < .5 ? 1 : 0));
+      rows.push({ date: isoOf(dt), start: s, end: e, driver: i === 15 ? 'max.muster@example.com' : p, p: i === 15 ? null : p, h: i === 15 ? null : hh[p] });
+      km = e;
+    }
+    if (cfg[3]) rows.push({ date: isoOf(dt), start: km, end: null, driver: 'Ben', p: 'Ben', h: 'PK' });
+    rows.forEach(function (r, k) { r.row = k + 2; if (k % 7 === 3) r.date = ''; });
+    o[cfg[0]] = rows;
+  });
+  return o;
+})();
+function mockTrips(b) {
+  var rows = MOCKT[b.sheet], hh = MOCK.households;
+  if (b.action !== 'trips') {
+    var idx = -1; rows.forEach(function (r, k) { if (r.row === +(b.action === 'tripInsert' ? b.afterRow : b.row)) idx = k; });
+    if (idx < 0) throw new Error('Eintrag nicht gefunden – bitte neu laden.');
+    var nr = { date: b.date, start: +b.start, end: b.end === '' ? null : +b.end, driver: b.who, p: b.who, h: hh[b.who] };
+    if (b.action === 'tripDelete') rows.splice(idx, 1);
+    else if (b.action === 'tripInsert') rows.splice(idx + 1, 0, nr);
+    else rows[idx] = nr;
+    rows.forEach(function (r, k) { r.row = k + 2; });
+  }
+  return { ok: true, sheet: b.sheet, rows: JSON.parse(JSON.stringify(rows)), drivers: MOCK.drivers, households: hh };
 }
 
 var MOCK_PRICES = [{ from: '2025-01-01', ct: 17.9, by: 'Anna' }, { from: '2026-04-01', ct: 18.3, by: 'Ben' }];
@@ -682,7 +782,7 @@ function mockExpAction(b) {
   }
   if (b.action === 'addOrder') {
     var x = b.order, f = x.first.split('-');
-    MOCKO.push({ id: 'O' + Date.now(), car: x.car, cat: x.cat, label: x.label || x.cat, interval: x.interval, day: +f[2], month: x.interval === 'jährlich' ? +f[1] : null,
+    MOCKO.push({ id: 'O' + Date.now(), car: x.car, cat: x.cat, label: x.label || x.cat, interval: x.interval, day: +(x.day || f[2]), month: x.interval === 'jährlich' ? +f[1] : null,
       payer: x.payer, split: x.split || '50:50', amount: dnum(x.amount), next: x.first, until: '', start: x.first, adjust: x.adjust || '', adjustDate: '', remind: false,
       stages: [{ from: x.first, amount: dnum(x.amount) }] });
   }
@@ -690,6 +790,7 @@ function mockExpAction(b) {
     var o = MOCKO.filter(function (y) { return y.id === b.id; })[0];
     o.stages.push({ from: b.from, amount: dnum(b.amount) }); o.amount = dnum(b.amount); o.remind = false;
   }
+  if (b.action === 'changeOrderDay') { var o3 = MOCKO.filter(function (y) { return y.id === b.id; })[0]; o3.day = +b.day; }
   if (b.action === 'endOrder') { var o2 = MOCKO.filter(function (y) { return y.id === b.id; })[0]; o2.until = b.until; o2.next = ''; }
   if (/Order|Draft/.test(b.action)) return mockExp();
   if (b.action === 'settle') {
@@ -733,6 +834,7 @@ var P = {
   receipt:  '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
   trash:    '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
   chart:    '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+  list:     '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
   mic:      '<path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>',
   dots:     '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
   scale:    '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
@@ -754,7 +856,7 @@ function batIcon(soc) {
 var ICON = { 'Julia Brettner': ic('van', 'x'), 'Schwitzkarre': ic('car', 'x') + '<span class="bolt">' + ic('zap', 'x') + '</span>' };
 document.querySelectorAll('[data-i]').forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-i')); });
 var SUB  = { 'Julia Brettner': 'VW T5', 'Schwitzkarre': 'MG5 Elektro' };
-var NEWS_KEY = 'fb-news-2.6';
+var NEWS_KEY = 'fb-news-2.7';
 
 function $(id) { return document.getElementById(id); }
 function fmt(n) { return n == null || isNaN(n) ? '–' : Number(n).toLocaleString('de-AT'); }
@@ -1187,11 +1289,12 @@ function renderMisc() {
   $('m-siri').innerHTML = '<h4>' + ic('mic') + 'Sprachsteuerung mit Siri</h4>'
     + '<div class="sub">Kurzbefehle fürs iPhone: antippen → „Kurzbefehl hinzufügen“. Danach z. B. „Hey Siri, ' + esc(sc[0] ? sc[0].name : '') + '“.</div>'
     + sc.map(function (x) { return '<a class="lrow" href="' + esc(x.url) + '" target="_blank" rel="noopener">' + ic('mic') + '<span>' + esc(x.name) + '<small>iCloud-Kurzbefehl laden</small></span>' + ic('chevron') + '</a>'; }).join('');
-  renderMiscMenu(); miscOpen(MSUB);
+  renderMiscMenu(); if (MSUB !== 'm-trips') miscOpen(MSUB);
 }
 function anum(v) { var t = String(v || '').replace(/\s|€/g, ''); if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, ''); return dnum(t); }
 var MSUB = '';
 var MISC_PAGES = [
+  ['m-trips', 'list',  'Fahrtenbuch', function () { return 'Einträge ansehen, korrigieren, Lücken füllen'; }],
   ['m-auf',   'scale', 'Auflösung simulieren', function () { return 'Hochrechnung nach Vertrag §5'; }],
   ['m-strom', 'zap',   'Strompreis & Ladestation', function () {
       var pr = (MISC.prices || []).filter(function (p) { return p.from <= todayISO(); }).sort(function (a, b) { return a.from < b.from ? 1 : -1; })[0];
@@ -1209,6 +1312,7 @@ function miscOpen(id) {
   $('m-menu').hidden = !!id; $('m-menu').style.display = id ? 'none' : '';
   $('m-back').hidden = !id;
   MISC_PAGES.forEach(function (pg) { $(pg[0]).hidden = pg[0] !== id; });
+  if (id === 'm-trips') { renderTrips(); loadTrips(); }
   window.scrollTo(0, 0);
 }
 function fmtNum(n) { return n == null ? '' : Number(n).toLocaleString('de-AT', { maximumFractionDigits: 2 }); }
@@ -1286,6 +1390,143 @@ function savePrice() {
   apiPost({ action: 'setPrice', ct: ct, from: from }).then(function (d) {
     MISC = Object.assign(MISC || {}, d); renderMisc(); toast('Strompreis gespeichert', false, 'check');
   }).catch(function (e) { $('p-save').disabled = false; msg.className = 'msg err'; msg.textContent = e.message || String(e); });
+}
+
+/* ---------- Fahrtenbuch-Einträge (Lücken, Korrekturen) ---------- */
+var TB = { car: sget('fb-tb-car') || 'Schwitzkarre', filter: 'all', show: 60, data: {} };
+function apiGetTrips(sheet) {
+  if (DEMO) return mock({ action: 'trips', sheet: sheet });
+  return fetch(API_URL + '?action=trips&sheet=' + encodeURIComponent(sheet) + '&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap);
+}
+function loadTrips() {
+  var car = TB.car;
+  if (!TB.data[car]) renderTrips();
+  apiGetTrips(car).then(function (d) { TB.data[car] = d; renderTrips(); })
+    .catch(function (e) {
+      var m = e.message || String(e);
+      if (/Unbekannte Aktion/.test(m)) $('tb-body').innerHTML = '<div class="msg warn" style="display:block">Diese Seite braucht die API ab Version ' + APP_VERSION + '. Code.gs im Projekt „Fahrtenbuch API“ ersetzen und eine neue Version bereitstellen.</div>';
+      else toast(m, true);
+    });
+}
+function tbCar(c) { TB.car = c; TB.show = 60; sset('fb-tb-car', c); renderTrips(); loadTrips(); }
+function tbFilter(f) { TB.filter = f; renderTrips(); }
+function tbMore() { TB.show += 100; renderTrips(); }
+
+/* Probleme zwischen aufeinanderfolgenden Zeilen (Sheet-Reihenfolge) */
+function tripIssues(rows) {
+  var out = { gaps: [], overlaps: [], unknown: 0, gapKm: 0 };
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    r.issue = null; r.prevDate = '';
+    if (!r.p) out.unknown++;
+    if (i === 0) continue;
+    var pv = rows[i - 1];
+    r.prevDate = pv.date || pv.prevDate || '';
+    if (pv.end == null || r.start == null) continue;
+    var d = r.start - pv.end;
+    if (d > 0) { r.issue = { type: 'gap', km: d, from: pv.end, to: r.start, prev: i - 1 }; out.gaps.push(r); out.gapKm += d; }
+    else if (d < 0) { r.issue = { type: 'overlap', km: -d, from: r.start, to: pv.end, prev: i - 1 }; out.overlaps.push(r); }
+  }
+  return out;
+}
+function tbDate(r) {
+  var d = r.date || r.prevDate;
+  if (!d) return '<div class="d">–</div>';
+  var p = d.split('-');
+  return '<div class="d' + (r.date ? '' : ' inh') + '">' + p[2] + '.' + p[1] + '.<small>' + p[0] + '</small></div>';
+}
+function renderTrips() {
+  var segs = [['Schwitzkarre', 'Schwitzkarre'], ['Julia Brettner', 'Julia Brettner']];
+  var h = '<h4>' + ic('list') + 'Fahrtenbuch</h4><div class="sub">Einträge ansehen und korrigieren – antippen zum Bearbeiten.</div>'
+    + '<div class="seg" style="margin-top:10px">' + segs.map(function (s) {
+        return '<button type="button" class="' + (s[0] === TB.car ? 'on' : '') + '" onclick="tbCar(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('') + '</div>';
+  var d = TB.data[TB.car];
+  if (!d) { $('m-trips').innerHTML = h + '<div id="tb-body"><div class="skeleton" style="height:240px;margin-top:12px"></div></div>'; return; }
+  var rows = d.rows, iss = tripIssues(rows), nProb = iss.gaps.length + iss.overlaps.length + iss.unknown;
+  h += '<div class="seg" style="margin-top:8px"><button type="button" class="' + (TB.filter === 'all' ? 'on' : '') + '" onclick="tbFilter(\'all\')">Alle (' + rows.length + ')</button>'
+    + '<button type="button" class="' + (TB.filter === 'prob' ? 'on' : '') + '" onclick="tbFilter(\'prob\')">Probleme (' + nProb + ')</button></div>';
+  h += '<div class="tbsum">' + (nProb ? [
+      iss.gaps.length ? '<span class="bad">' + iss.gaps.length + ' Lücke' + (iss.gaps.length > 1 ? 'n' : '') + ' · ' + fmt(iss.gapKm) + ' km</span>' : '',
+      iss.overlaps.length ? '<span class="bad">' + iss.overlaps.length + ' Überschneidung' + (iss.overlaps.length > 1 ? 'en' : '') + '</span>' : '',
+      iss.unknown ? '<span class="bad">' + iss.unknown + '× Fahrer:in unbekannt</span>' : ''].filter(Boolean).join('')
+    : '<span class="ok">' + ic('check') + 'Keine Lücken – alles lückenlos</span>') + '</div>';
+  var items = [], shown = 0;
+  for (var i = rows.length - 1; i >= 0 && shown < TB.show; i--) {
+    var r = rows[i], prob = r.issue || !r.p;
+    if (TB.filter === 'prob' && !prob) continue;
+    items.push(tbItem(r, i)); shown++;
+    if (r.issue) items.push(tbIssue(r, i));
+  }
+  h += '<div id="tb-body"><div class="tblist">' + (items.length ? items.join('') : '<div class="empty">Keine Probleme gefunden 🎉</div>') + '</div>'
+    + (shown >= TB.show ? '<button class="btn ghost" style="width:100%;margin-top:10px" onclick="tbMore()">Ältere anzeigen</button>' : '') + '</div>';
+  $('m-trips').innerHTML = h;
+}
+function tbItem(r, i) {
+  var km = r.end != null && r.start != null ? r.end - r.start : null;
+  var who = r.p ? '<i class="dot" style="background:var(--c-' + r.h.toLowerCase() + ')"></i>' + esc(r.p)
+                : '<span class="tag">unbekannt</span> ' + esc(r.driver || '–');
+  return '<div class="ti" onclick="openTrip(' + i + ')">' + tbDate(r)
+    + '<div class="m"><b>' + who + '</b><span>' + fmt(r.start) + ' → ' + (r.end == null ? '…' : fmt(r.end)) + '</span></div>'
+    + '<div class="r">' + (km == null ? '<span class="tag">unterwegs</span>' : '<b>' + fmt(km) + ' km</b>') + '</div></div>';
+}
+function tbIssue(r, i) {
+  var x = r.issue;
+  if (x.type === 'gap') return '<div class="tgap"><span>' + ic('alert') + '<span>Lücke <b>' + fmt(x.km) + ' km</b><small>km ' + fmt(x.from) + ' – ' + fmt(x.to) + '</small></span></span>'
+    + '<button class="btn small primary" onclick="openTrip(' + i + ', true)">Eintragen</button></div>';
+  return '<div class="tgap warn"><span>' + ic('alert') + '<span>Überschneidung <b>' + fmt(x.km) + ' km</b><small>Start ' + fmt(x.from) + ' liegt vor dem Ende davor (' + fmt(x.to) + ') – einen der beiden Einträge korrigieren</small></span></span></div>';
+}
+
+/* Dialog */
+var TF = null;
+function openTrip(i, fillGap) {
+  if (!ME) return openPicker(true);
+  var d = TB.data[TB.car], r = d.rows[i];
+  if (fillGap) {
+    var pv = d.rows[r.issue.prev];
+    TF = { mode: 'insert', afterRow: pv.row, expect: { start: pv.start, end: pv.end }, date: r.date || r.prevDate || todayISO(),
+           start: r.issue.from, end: r.issue.to, who: '' };
+  } else {
+    TF = { mode: 'edit', row: r.row, expect: { start: r.start, end: r.end }, date: r.date || r.prevDate || '', start: r.start, end: r.end, who: r.p || '',
+           last: i === d.rows.length - 1 };
+  }
+  $('t-title').textContent = TF.mode === 'insert' ? 'Lücke eintragen' : 'Fahrt bearbeiten';
+  $('t-sub').textContent = TB.car + (TF.mode === 'edit' && !r.p && r.driver ? ' · bisher eingetragen: ' + r.driver : '');
+  $('t-date').value = TF.date; $('t-start').value = TF.start == null ? '' : TF.start; $('t-end').value = TF.end == null ? '' : TF.end;
+  $('t-del').style.display = TF.mode === 'edit' ? '' : 'none';
+  $('t-msg').className = 'msg'; $('t-ok').disabled = false;
+  renderTF();
+  $('backdrop').classList.add('show'); $('tdlg').classList.add('show');
+}
+function renderTF() {
+  var dr = (TB.data[TB.car] && TB.data[TB.car].drivers) || STATE.drivers || [];
+  $('t-who').innerHTML = dr.map(function (n) {
+    return '<button type="button" class="' + (n === TF.who ? 'on' : '') + '" onclick="TF.who=\'' + esc(n) + '\';renderTF()">' + esc(n) + '</button>'; }).join('');
+  var s = num($('t-start').value), e = num($('t-end').value);
+  $('t-km').textContent = s != null && e != null && e >= s ? fmt(e - s) + ' km' : '';
+}
+function closeTrip() { $('tdlg').classList.remove('show'); if (!DLG && !XF && !$('picker').classList.contains('show')) $('backdrop').classList.remove('show'); TF = null; }
+function tripDone(d, msg) {
+  TB.data[TB.car] = d; closeTrip(); renderTrips(); toast(msg, false, 'check');
+  if (d.cars) { STATE.cars = d.cars; try { render(); } catch (e) {} }
+}
+function saveTrip() {
+  var s = num($('t-start').value), e = $('t-end').value.trim() === '' ? null : num($('t-end').value), date = $('t-date').value;
+  var err = !date ? 'Bitte ein Datum wählen.' : s == null ? 'Bitte den Start-km-Stand eingeben.'
+          : (e == null && !(TF.mode === 'edit' && TF.last)) ? 'Bitte den End-km-Stand eingeben.'
+          : (e != null && e < s) ? 'End-km ist kleiner als Start-km.' : !TF.who ? 'Bitte auswählen, wer gefahren ist.' : null;
+  if (err) { $('t-msg').className = 'msg err'; $('t-msg').textContent = err; return; }
+  var body = { action: TF.mode === 'insert' ? 'tripInsert' : 'tripEdit', sheet: TB.car, expect: TF.expect, date: date, start: s, end: e == null ? '' : e, who: TF.who };
+  if (TF.mode === 'insert') body.afterRow = TF.afterRow; else body.row = TF.row;
+  $('t-ok').disabled = true;
+  var isIns = TF.mode === 'insert';
+  apiPost(body).then(function (d) { tripDone(d, isIns ? 'Lücke eingetragen' : 'Fahrt gespeichert'); })
+    .catch(function (x) { $('t-ok').disabled = false; $('t-msg').className = 'msg err'; $('t-msg').textContent = x.message || String(x); });
+}
+function deleteTrip() {
+  if (!TF || !confirm('Diese Fahrt wirklich aus dem Fahrtenbuch löschen?')) return;
+  apiPost({ action: 'tripDelete', sheet: TB.car, row: TF.row, expect: TF.expect }).then(function (d) { tripDone(d, 'Fahrt gelöscht'); })
+    .catch(function (x) { $('t-msg').className = 'msg err'; $('t-msg').textContent = x.message || String(x); });
 }
 
 /* ---------- Ausgaben ---------- */
@@ -1430,9 +1671,11 @@ function openOrd(id) {
     $('o-newamt').value = '';
     $('o-from').value = o.adjustDate || o.next || todayISO();
     $('o-end').style.display = o.until ? 'none' : '';
+    $('o-day').innerHTML = dayOpts(); $('o-day').value = o.day;
   } else {
     $('o-title').textContent = 'Neuer Dauerauftrag'; $('o-sub').textContent = 'z. B. Versicherung';
     $('on-label').value = ''; $('on-amt').value = ''; $('on-first').value = todayISO(); $('on-adj').value = '';
+    $('on-day').innerHTML = dayOpts(); $('on-day').value = 1;
     renderNewOrd();
   }
   $('backdrop').classList.add('show'); $('odlg').classList.add('show');
@@ -1452,6 +1695,16 @@ function ordCall(body, msgEl, btn, okMsg) {
   return apiPost(body).then(function (d) { EXP = d; closeOrd(); renderExp(); toast(okMsg, false, 'check'); })
     .catch(function (e) { if (btn) btn.disabled = false; $(msgEl).className = 'msg err'; $(msgEl).textContent = e.message || String(e); });
 }
+function dayOpts() {
+  var h = '';
+  for (var d = 1; d <= 31; d++) h += '<option value="' + d + '">' + (d === 31 ? '31. bzw. Monatsletzter' : d + '. des Monats') + '</option>';
+  return h;
+}
+function saveOrdDay() {
+  var d = +$('o-day').value;
+  if (d === CUR_ORD.day) { $('o-msg').className = 'msg warn'; $('o-msg').textContent = 'Das ist schon der aktuelle Fälligkeitstag.'; return; }
+  ordCall({ action: 'changeOrderDay', id: CUR_ORD.id, day: d }, 'o-msg', $('o-daysave'), 'Fällig ab jetzt am ' + d + '.');
+}
 function saveOrdAmount() {
   var a = dnum($('o-newamt').value), f = $('o-from').value;
   if (!(a > 0)) { $('o-msg').className = 'msg err'; $('o-msg').textContent = 'Bitte den neuen Betrag eingeben.'; return; }
@@ -1470,7 +1723,7 @@ function saveNewOrd() {
   if (!(a > 0)) { $('on-msg').className = 'msg err'; $('on-msg').textContent = 'Bitte einen Betrag eingeben.'; return; }
   if (!f) { $('on-msg').className = 'msg err'; $('on-msg').textContent = 'Bitte die erste Fälligkeit wählen.'; return; }
   ordCall({ action: 'addOrder', order: { car: c.car, cat: 'Versicherung', label: $('on-label').value.trim(), amount: a, interval: c.interval,
-            first: f, payer: c.payer, split: '50:50', adjust: $('on-adj').value.trim() } }, 'on-msg', $('on-save'), 'Dauerauftrag angelegt');
+            first: f, day: +$('on-day').value, payer: c.payer, split: '50:50', adjust: $('on-adj').value.trim() } }, 'on-msg', $('on-save'), 'Dauerauftrag angelegt');
 }
 function draftBtn(id) {
   var inp = $('dr-' + id), b = $('drb-' + id), changed = Math.abs((dnum(inp.value) || 0) - Number(inp.dataset.orig)) > 0.004;
@@ -1541,8 +1794,17 @@ function renderXF() {
   $('x-payer').innerHTML = segHTML([['PK', esc(hhLabel('PK'))], ['TM', esc(hhLabel('TM'))]], XF.payer, 'setPayer');
   var tank = XF.split === 'km';
   $('x-tank').style.display = XF.cat === 'Tanken' ? '' : 'none';
-  $('x-split-wrap').style.display = (tank || XF.split === 'fix' || XF.split === 'kmMonat') ? 'none' : '';
-  $('x-split').innerHTML = segHTML([['50:50', 'je zur Hälfte'], ['PK', 'nur ' + esc(hhLabel('PK'))], ['TM', 'nur ' + esc(hhLabel('TM'))]], XF.split, 'setSplit');
+  $('x-split-wrap').style.display = (tank || XF.cat === 'Tanken' || XF.split === 'kmMonat' || /^Laden@/.test(XF.order || '')) ? 'none' : '';
+  $('x-split').innerHTML = segHTML([['50:50', 'je zur Hälfte'], ['PK', 'nur ' + esc(hhLabel('PK'))], ['TM', 'nur ' + esc(hhLabel('TM'))], ['fix', 'eigene Aufteilung']], XF.split, 'setSplit');
+  $('x-fix').style.display = XF.split === 'fix' ? '' : 'none';
+  if (XF.split === 'fix') {
+    var pk = Math.round((XF.share == null ? 0.5 : XF.share) * 100);
+    $('x-fix-range').value = pk; $('x-fix-range').disabled = XF.locked;
+    $('x-fix-pk').innerHTML = esc(hhLabel('PK')) + ' <b>' + pk + ' %</b>';
+    $('x-fix-tm').innerHTML = esc(hhLabel('TM')) + ' <b>' + (100 - pk) + ' %</b>';
+    $('x-fix-chips').innerHTML = XF.locked ? '' : [90, 80, 70, 60, 40, 30, 20, 10].map(function (v) {
+      return '<button type="button" class="' + (v === pk ? 'on' : '') + '" onclick="setFix(' + v + ')">' + v + ' / ' + (100 - v) + '</button>'; }).join('');
+  }
   updPreview();
 }
 function setCar(c) { XF.car = c; var cats = EXP.categories[c] || []; if (cats.indexOf(XF.cat) < 0) setCat(cats[0]); else renderXF(); }
@@ -1553,7 +1815,8 @@ function setCat(c) {
   renderXF();
 }
 function setPayer(p) { XF.payer = p; renderXF(); }
-function setSplit(s) { XF.split = s; renderXF(); }
+function setSplit(s) { if (s === 'fix' && XF.split !== 'fix') XF.share = XF.share != null && XF.split === 'fix' ? XF.share : 0.8; XF.split = s; renderXF(); }
+function setFix(v) { XF.share = Math.max(0, Math.min(100, +v)) / 100; renderXF(); }
 
 function readXF() {
   XF.amount = dnum($('x-amount').value); XF.date = $('x-date').value;
@@ -1567,7 +1830,7 @@ function updPreview() {
   if (XF.split === '50:50') { share = 0.5; info = 'Fixkosten: je zur Hälfte'; }
   else if (XF.split === 'PK') { share = 1; info = 'Trägt ' + hhLabel('PK') + ' allein'; }
   else if (XF.split === 'TM') { share = 0; info = 'Trägt ' + hhLabel('TM') + ' allein'; }
-  else if (XF.split === 'fix') { share = XF.share; info = /^Laden@/.test(XF.order || '') ? 'Nach km im Monat (bei der Abrechnung fixiert)' : 'Fixer Anteil aus den Altdaten'; }
+  else if (XF.split === 'fix') { share = XF.share; info = /^Laden@/.test(XF.order || '') ? 'Nach km im Monat (bei der Abrechnung fixiert)' : 'Eigene Aufteilung'; }
   else if (XF.split === 'kmMonat') {
     var mw = XF.window || { pk: 0, tm: 0, month: '' };
     share = XF.share; prov = XF.provisional;
@@ -1605,6 +1868,7 @@ function saveExp() {
           : (XF.split === 'km' && !XF.km) ? 'Bitte den km-Stand beim Tanken eingeben.' : null;
   if (err) { $('x-msg').className = 'msg err'; $('x-msg').textContent = err; return; }
   var body = { car: XF.car, cat: XF.cat, amount: XF.amount, date: XF.date, payer: XF.payer, split: XF.split, note: XF.note };
+  if (XF.split === 'fix') body.fixShare = XF.share == null ? 0.5 : XF.share;
   if (XF.cat === 'Tanken') { body.km = XF.km; body.liter = XF.liter; body.full = XF.full; }
   $('x-ok').disabled = true; $('x-ok').textContent = 'Speichere …';
   var req = XF.isNew ? apiPost({ action: 'addExpense', expense: body }) : apiPost({ action: 'updateExpense', id: XF.id, expense: body });
