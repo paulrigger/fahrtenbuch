@@ -375,7 +375,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>Fahrtenbuch <span class="badge">2.6</span></h1>
+      <h1>Fahrtenbuch</h1>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="me-btn" id="me" onclick="openPicker()"></button>
@@ -536,6 +536,7 @@ var QS = new URLSearchParams(location.search);
 var KEY = QS.get('k') || sget('fb-key') || '';
 if (QS.get('k')) sset('fb-key', QS.get('k'));
 var ME = sget('fb-driver') || '';
+var APP_VERSION = '2.6';
 var DEMO = QS.has('demo') || API_URL.indexOf('HIER_') >= 0;
 
 /* ---------- API ---------- */
@@ -740,7 +741,8 @@ function load() {
   apiGet().then(function (d) {
     $('refresh').classList.remove('spin');
     STATE = d; renderMe();
-    $('version').textContent = 'Version ' + d.version;
+    var apiV = String(d.version || '').replace(' (Demo)', '');
+    $('version').textContent = 'Version ' + APP_VERSION + (DEMO ? ' (Demo)' : apiV === APP_VERSION ? '' : ' · API ' + apiV + ' – bitte API aktualisieren');
     render();
     if (!ME) openPicker(true);
   }).catch(function (e) {
@@ -1043,7 +1045,11 @@ function apiGetMisc() {
 }
 function loadMisc() {
   if (!KEY && !DEMO) return;
-  apiGetMisc().then(function (d) { MISC = d; renderMisc(); }).catch(function (e) { toast(e.message || String(e), true); });
+  apiGetMisc().then(function (d) { MISC = d; renderMisc(); }).catch(function (e) {
+    var m = e.message || String(e);
+    if (/Unbekannte Aktion/.test(m)) $('m-auf').innerHTML = '<h4>' + ic('alert') + 'API-Update nötig</h4><div class="sub">Dieser Reiter braucht die API ab Version ' + APP_VERSION + '. Code.gs im Projekt „Fahrtenbuch API“ ersetzen und eine neue Version bereitstellen.</div>';
+    else toast(m, true);
+  });
 }
 function addYears(iso, n) { var p = iso.split('-'); return new Date(+p[0] + n, +p[1] - 1, +p[2]); }
 function isoOf(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
