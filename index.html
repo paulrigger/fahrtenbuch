@@ -200,6 +200,11 @@
                    display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 22px; border-radius: 15px; cursor: pointer; }
   .tabbar button .ic { width: 22px; height: 22px; }
   .tabbar button.on { background: var(--raised); color: var(--ink); }
+  .tab-ic { position: relative; display: inline-flex; }
+  .nbadge { position: absolute; top: -6px; right: -10px; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 999px;
+            background: #ff3b30; color: #fff; font-size: 12px; font-weight: 700; line-height: 19px; text-align: center;
+            box-shadow: 0 0 0 2px var(--sheet-bg); font-variant-numeric: tabular-nums; }
+  .nbadge[hidden] { display: none; }
   section[hidden] { display: none !important; }
 
   /* ---------- Ausgaben ---------- */
@@ -345,7 +350,7 @@
 
 <nav class="tabbar">
   <button id="tab-trips" class="on" onclick="showView('trips')"><span data-i="car"></span>Fahrten</button>
-  <button id="tab-exp" onclick="showView('exp')"><span data-i="receipt"></span>Ausgaben</button>
+  <button id="tab-exp" onclick="showView('exp')"><span class="tab-ic"><span data-i="receipt"></span><span class="nbadge" id="exp-badge" hidden></span></span>Ausgaben</button>
 </nav>
 
 <div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp(); closeOrd()"></div>
@@ -636,7 +641,7 @@ function openPicker(force) {
   $('backdrop').classList.add('show'); $('picker').classList.add('show');
 }
 function closePicker() { if (!ME) return; $('picker').classList.remove('show'); if (!DLG) $('backdrop').classList.remove('show'); }
-function pickDriver(n) { ME = n; sset('fb-driver', n); renderMe(); closePicker(); if (EXP) renderExp(); toast('Hallo ' + n + '!', false, 'check'); }
+function pickDriver(n) { ME = n; sset('fb-driver', n); renderMe(); closePicker(); if (EXP) renderExp(); else loadExp(); toast('Hallo ' + n + '!', false, 'check'); }
 
 function render() {
   $('cars').innerHTML = STATE.cars.map(function (c, i) {
@@ -811,6 +816,22 @@ function renderExp() {
     + (SHOW_DONE && done.length ? '<div class="xlist">' + done.map(xItem).join('') + '</div>' : '');
   $('xlists').innerHTML = html;
   renderOrders();
+  updateBadge();
+}
+
+/* Rote Zahl am Tab: was ICH gerade erledigen muss */
+function todoCount() {
+  if (!EXP || !ME) return 0;
+  var me = myHH(), n = 0;
+  EXP.expenses.forEach(function (e) { if (e.status === 'Entwurf' && e.payer === me) n++; });
+  (EXP.settlements || []).forEach(function (st) { if (st.to === me) n++; });
+  (EXP.orders || []).forEach(function (o) { if (o.remind && o.payer === me) n++; });
+  return n;
+}
+function updateBadge() {
+  var n = todoCount(), b = $('exp-badge');
+  b.textContent = n > 9 ? '9+' : String(n); b.hidden = n === 0;
+  try { if (navigator.setAppBadge) { if (n) navigator.setAppBadge(n); else navigator.clearAppBadge(); } } catch (e) {}
 }
 
 /* ---------- Daueraufträge ---------- */
@@ -1086,8 +1107,9 @@ if (!sget(NEWS_KEY)) $('news').hidden = false;
 
 renderMe();
 load();
-setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); if (VIEW === 'exp') loadExp(); } }, 60000);   // alle 60 s still aktualisieren
-document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG && !XF) { load(); if (VIEW === 'exp') loadExp(); } });
+loadExp();   // auch im Fahrten-Tab, damit die rote Zahl stimmt
+setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } }, 60000);   // alle 60 s still aktualisieren
+document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } });
 if (sget('fb-view') === 'exp') showView('exp');
 </script>
 </body>
