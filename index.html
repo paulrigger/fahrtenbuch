@@ -228,7 +228,9 @@
   .draft .lbl .ic { width: 16px; height: 16px; }
   .draft .t { font-size: 17px; font-weight: 700; margin: 6px 0 2px; }
   .draft .meta { font-size: 13.5px; color: var(--muted); }
-  .draft .row2 { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; align-items: end; }
+  .draft .row2 { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 12px; }
+  .draft .row2 .btn { width: 100%; }
+  .draft label { color: var(--muted); }
   .draft input { font-size: 20px; padding: 10px 12px; }
   .draft .btn { padding: 13px 16px; }
   .remind { border-radius: 16px; padding: 12px 14px; margin-top: 14px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14.5px; line-height: 1.45; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; }
@@ -824,10 +826,14 @@ function renderOrders() {
     var mine = myHH() === e.payer;
     return '<div class="draft"><div class="lbl">' + ic('bell') + 'Betrag prüfen</div>'
       + '<div class="t">' + esc(e.note.replace(/ – Betrag prüfen$/, '')) + ' · fällig ' + dDE(e.date) + '</div>'
-      + '<div class="meta">Vorschlag aus dem Vorjahr. ' + (mine ? 'Bitte den tatsächlichen Betrag laut Rechnung bestätigen.' : 'Bestätigt wird von ' + esc(hhLabel(e.payer)) + '.') + '</div>'
-      + (mine ? '<div class="row2"><input type="text" inputmode="decimal" id="dr-' + esc(e.id) + '" value="' + String(e.amount).replace('.', ',') + '">'
-               + '<button class="btn primary" onclick="confirmDraft(\'' + esc(e.id) + '\')">' + ic('check') + 'Bestätigen</button></div>'
-             : '<div class="t" style="margin-top:8px">' + eur(e.amount) + '</div>')
+      + (mine
+          ? '<div class="meta">Vorschlag aus dem Vorjahr. Stimmt der Betrag laut Rechnung? Dann einfach bestätigen – sonst vorher korrigieren.</div>'
+            + '<div class="row2"><div><label for="dr-' + esc(e.id) + '">Betrag laut Rechnung (€)</label>'
+            + '<input type="text" inputmode="decimal" id="dr-' + esc(e.id) + '" value="' + String(e.amount).replace('.', ',') + '" data-orig="' + e.amount + '" oninput="draftBtn(\'' + esc(e.id) + '\')"></div>'
+            + '<button class="btn primary" id="drb-' + esc(e.id) + '" onclick="confirmDraft(\'' + esc(e.id) + '\')">' + ic('check') + 'Stimmt – buchen</button></div>'
+          : '<div class="t" style="margin-top:8px">' + eur(e.amount) + ' <span style="font-weight:500;font-size:14px;color:var(--muted)">(Vorschlag)</span></div>'
+            + '<div class="wait" style="margin-top:10px;padding:10px 12px;border-radius:12px;background:var(--raised);font-size:14px">'
+            + 'Wartet auf Bestätigung durch <b>' + esc(hhLabel(e.payer)) + '</b> (zahlt die Rechnung). Erst danach zählt der Betrag im Saldo.</div>')
       + '</div>';
   }).join('');
   // Erinnerungen vor Anpassung
@@ -908,6 +914,10 @@ function saveNewOrd() {
   if (!f) { $('on-msg').className = 'msg err'; $('on-msg').textContent = 'Bitte die erste Fälligkeit wählen.'; return; }
   ordCall({ action: 'addOrder', order: { car: c.car, cat: 'Versicherung', label: $('on-label').value.trim(), amount: a, interval: c.interval,
             first: f, payer: c.payer, split: '50:50', adjust: $('on-adj').value.trim() } }, 'on-msg', $('on-save'), 'Dauerauftrag angelegt');
+}
+function draftBtn(id) {
+  var inp = $('dr-' + id), b = $('drb-' + id), changed = Math.abs((dnum(inp.value) || 0) - Number(inp.dataset.orig)) > 0.004;
+  b.innerHTML = ic('check') + (changed ? 'Neuen Betrag buchen' : 'Stimmt – buchen');
 }
 function confirmDraft(id) {
   var a = dnum($('dr-' + id).value);
