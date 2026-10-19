@@ -63,6 +63,13 @@ Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertra
 
 ![Daueraufträge](docs/dauerauftrag.png)
 
+**Statistik** *(ab v2.5)*
+- Dritter Reiter mit Zeitraum (12 Monate / dieses Jahr / gesamt) und Auto-Filter
+- Kennzahlen: gefahrene km, Kosten, €/100 km, Anteil der Haushalte
+- km pro Monat (gestapelt nach Haushalt, antippen für Details, auch als Tabelle), km pro Person, Kosten pro Auto und nach Kategorie
+
+![Statistik](docs/statistik.png)
+
 **Allgemein**
 - Als **App auf dem Home-Bildschirm** installierbar (eigenes Icon, kein Browser-Rahmen, kein Google-Banner)
 - **Hell- und Dunkelmodus** folgen der Systemeinstellung
@@ -194,6 +201,7 @@ Alle Antworten sind JSON, Fehler immer als `{ "ok": false, "error": "…" }`.
 | Aufruf | Antwort |
 |---|---|
 | `?key=…&action=all` | `version`, `drivers`, `households`, `hhLabels`, `sheetUrl`, `cars[]` |
+| `?key=…&action=stats` | `trips[{m, car, p, h, km}]`, `costs[{m, car, cat, amount}]` (Monatswerte) |
 | `?key=…&action=expenses` | `expenses[]`, `saldo`, `saldoProvisional`, `tankWindow`, `categories` |
 
 ### POST (`Content-Type: text/plain`, JSON im Body)
@@ -284,7 +292,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 |---|---|
 | Ausgaben eintragen | ✅ v2.2 |
 | Migration Altdaten | ✅ v2.2 |
-| Statistik-Seite | ⏳ |
+| Statistik-Seite | ✅ v2.5 |
 | Vertragsseite: Auflösung simulieren | ⏳ |
 
 **Phase 2:** Siri „Tankung eintragen" · ~~Abrechnung~~ ✅ v2.3 · Lücken-Seite · ~~Fixkosten/Versicherung~~ ✅ v2.4 · MG5-Laden über Node-RED · Erinnerungen · Reservierungskalender · Belegfoto
@@ -295,6 +303,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.5** | Statistik-Reiter; rote Zahl am Tab „Ausgaben" für offene Aufgaben |
 | **2.4** | Daueraufträge (Versicherung), Entwürfe für jährliche Beträge, Erinnerung vor Anpassung; Kategorien reduziert |
 | **2.3** | Abrechnen per Knopf, Bestätigung durch Empfänger, Tab „Abrechnungen" |
 | **2.2** | Ausgaben, Saldo, Tank-Aufteilung nach km, Migration der Altbuchungen |

@@ -43,6 +43,7 @@
     --shadow: none;
     --page: radial-gradient(120% 60% at 100% 0%, rgba(75,163,195,.35), transparent 60%), var(--baltic-blue);
     --sheet-bg: var(--baltic-blue);
+    --c-pk: #3d9fd6; --c-tm: #ec4e5e; --c-one: #8fc3df; --grid: rgba(255,255,255,.10);
     --bolt-bg: var(--pale-sky); --bolt-ink: var(--baltic-blue);
     color-scheme: dark;
   }
@@ -51,6 +52,7 @@
     :root {
       --page: radial-gradient(120% 60% at 100% 0%, rgba(75,163,195,.28), transparent 60%), var(--pale-sky);
       --sheet-bg: #ffffff;
+      --c-pk: #1590c8; --c-tm: #d62839; --c-one: #175676; --grid: rgba(23,86,118,.12);
       --card: #ffffff;
       --raised: rgba(23,86,118,.08);
       --line: rgba(23,86,118,.14);
@@ -197,7 +199,7 @@
             display: flex; gap: 4px; padding: 5px; border-radius: 20px; z-index: 5;
             background: var(--sheet-bg); border: 1px solid var(--line); box-shadow: 0 8px 30px rgba(6,28,40,.35); }
   .tabbar button { border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 650;
-                   display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 22px; border-radius: 15px; cursor: pointer; }
+                   display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 16px; border-radius: 15px; cursor: pointer; }
   .tabbar button .ic { width: 22px; height: 22px; }
   .tabbar button.on { background: var(--raised); color: var(--ink); }
   .tab-ic { position: relative; display: inline-flex; }
@@ -207,7 +209,7 @@
   .nbadge[hidden] { display: none; }
   section[hidden] { display: none !important; }
 
-  /* ---------- Ausgaben ---------- */
+  /* ---------- Ausgaben (Liste) ---------- */
   .saldo { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 18px; box-shadow: var(--shadow); }
   .saldo .lbl { font-size: 13px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
   .saldo .amt { font-size: 36px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin: 4px 0 2px; }
@@ -251,6 +253,42 @@
   .infoline { font-size: 14px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
   .infoline b { color: var(--ink); }
   .sectitle { font-size: 16px; font-weight: 700; margin: 18px 0 6px; }
+  /* ---------- Statistik ---------- */
+  .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow); }
+  .kpi .l { font-size: 12.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .v { font-size: 26px; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .kpi .v small { font-size: 14px; font-weight: 600; color: var(--muted); margin-left: 3px; }
+  .kpi .s { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+  .kpi.wide { grid-column: 1 / -1; }
+  .split { display: flex; height: 10px; border-radius: 999px; overflow: hidden; margin: 10px 0 8px; gap: 2px; }
+  .split i { display: block; height: 100%; }
+  .card2 { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 16px; margin-top: 14px; box-shadow: var(--shadow); position: relative; }
+  .card2 h4 { margin: 0; font-size: 16px; }
+  .card2 .sub { font-size: 13px; color: var(--muted); margin: 2px 0 10px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .chart text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+  .chart .gl { stroke: var(--grid); stroke-width: 1; }
+  .chart .hit { fill: transparent; cursor: pointer; }
+  .chart .hit.on { fill: var(--grid); }
+  .tip { position: absolute; pointer-events: none; background: var(--primary); color: var(--primary-ink); border-radius: 12px; padding: 8px 10px;
+         font-size: 13px; line-height: 1.45; box-shadow: 0 8px 24px rgba(6,28,40,.3); white-space: nowrap; z-index: 3; transform: translate(-50%, -100%); }
+  .tip b { font-variant-numeric: tabular-nums; }
+  .tip i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+  .hbar { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 10px; padding: 7px 0; font-size: 14px; }
+  .hbar .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hbar .b { height: 14px; border-radius: 0 4px 4px 0; min-width: 2px; }
+  .hbar .val { font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tbl th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 6px 4px; border-bottom: 1px solid var(--line); }
+  .tbl td { padding: 8px 4px; border-bottom: 1px solid var(--line); }
+  .tbl td.r, .tbl th.r { text-align: right; }
+  .note2 { font-size: 12.5px; color: var(--muted); margin-top: 10px; line-height: 1.45; }
+  details.tv { margin-top: 10px; font-size: 13px; color: var(--muted); }
+  details.tv summary { cursor: pointer; color: var(--turquoise-surf); font-weight: 600; }
   .add-exp { width: 100%; padding: 18px 12px; font-size: 18px; border-radius: 18px; box-shadow: 0 8px 24px -10px rgba(6,28,40,.5); }
   .add-exp .ic { width: 22px; height: 22px; }
   .list-h { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 4px 0; font-size: 13px; font-weight: 700;
@@ -313,7 +351,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>Fahrtenbuch <span class="badge">2.4</span></h1>
+      <h1>Fahrtenbuch <span class="badge">2.5</span></h1>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="me-btn" id="me" onclick="openPicker()"></button>
@@ -323,16 +361,22 @@
 
   <div class="news" id="news" hidden>
     <button class="x" aria-label="Schließen" onclick="hideNews()" data-i="x"></button>
-    <b><span data-i="sparkles"></span>Neu in Version 2.4</b>
+    <b><span data-i="sparkles"></span>Neu in Version 2.5</b>
     <ul>
-      <li><b style="display:inline">Daueraufträge</b> für die Versicherungen: werden automatisch gebucht, Betrag mit „gültig ab" änderbar</li>
-      <li>Jährliche Beträge kommen als Entwurf – die zahlende Seite bestätigt den Betrag laut Rechnung</li>
-      <li><b style="display:inline">Abrechnen</b> per Knopf, die andere Seite bestätigt den Erhalt</li>
+      <li><b style="display:inline">Statistik</b>: km pro Monat und Person, Anteile der Haushalte, Kosten und €/100 km</li>
+      <li><b style="display:inline">Daueraufträge</b> für die Versicherungen, jährliche Beträge zum Bestätigen</li>
+      <li>Rote Zahl am Tab „Ausgaben", wenn etwas zu erledigen ist</li>
     </ul>
   </div>
 
   <section id="view-trips">
   <div id="cars"><div class="skeleton"></div><div class="skeleton" style="margin-top:14px"></div></div>
+  </section>
+
+  <section id="view-stats" hidden>
+    <div class="seg" id="st-range"></div>
+    <div class="seg" id="st-car" style="margin-top:8px"></div>
+    <div id="st-body" style="margin-top:14px"><div class="skeleton" style="height:180px"></div></div>
   </section>
 
   <section id="view-exp" hidden>
@@ -351,6 +395,7 @@
 <nav class="tabbar">
   <button id="tab-trips" class="on" onclick="showView('trips')"><span data-i="car"></span>Fahrten</button>
   <button id="tab-exp" onclick="showView('exp')"><span class="tab-ic"><span data-i="receipt"></span><span class="nbadge" id="exp-badge" hidden></span></span>Ausgaben</button>
+  <button id="tab-stats" onclick="showView('stats')"><span data-i="chart"></span>Statistik</button>
 </nav>
 
 <div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp(); closeOrd()"></div>
@@ -479,7 +524,7 @@ function apiPost(body) {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.4 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.5 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -488,6 +533,7 @@ function mock(b) {
   return new Promise(function (res) { setTimeout(function () {
     if (b.action === 'all') return res(JSON.parse(JSON.stringify(MOCK)));
     if (b.action === 'expenses') return res(mockExp());
+    if (b.action === 'stats') return res(mockStats());
     if (/Expense$|ettle|Order|Draft/.test(b.action)) { try { return res(mockExpAction(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
     var c = MOCK.cars.filter(function (x) { return x.sheet === b.sheet; })[0];
     if (b.action === 'start') { c.open = true; c.startKM = +b.startKM; c.lastKM = +b.startKM; c.driver = b.driver; c.date = 'heute';
@@ -495,6 +541,27 @@ function mock(b) {
     var was = c.open; c.open = false; c.startKM = +b.startKM; c.endKM = +b.endKM; c.distance = b.endKM - b.startKM; c.lastKM = +b.endKM; c.driver = b.driver; c.date = 'heute';
     res({ ok: true, mode: was ? 'closed' : 'direct', start: c.startKM, end: c.endKM, distance: c.distance, cars: MOCK.cars });
   }, 350); });
+}
+
+function mockStats() {
+  var trips = [], costs = [], ppl = [['Anna', 'PK'], ['Ben', 'PK'], ['Clara', 'TM'], ['David', 'TM']], d = new Date();
+  var seed = 7; function rnd() { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; }
+  for (var i = 17; i >= 0; i--) {
+    var dt = new Date(d.getFullYear(), d.getMonth() - i, 1), m = dt.getFullYear() + '-' + ('0' + (dt.getMonth() + 1)).slice(-2);
+    ['Schwitzkarre', 'Julia Brettner'].forEach(function (car) {
+      ppl.forEach(function (p, j) {
+        var base = car === 'Schwitzkarre' ? [140, 60, 420, 260][j] : [160, 40, 120, 90][j];
+        if (dt.getMonth() === 6 && car === 'Julia Brettner' && j < 2) base *= 5;
+        trips.push({ m: m, car: car, p: p[0], h: p[1], km: Math.round(base * (0.5 + rnd())) });
+      });
+    });
+    costs.push({ m: m, car: 'Julia Brettner', cat: 'Versicherung', amount: 94.11 });
+    if (i % 2 === 0) costs.push({ m: m, car: 'Julia Brettner', cat: 'Tanken', amount: Math.round(90 + rnd() * 40) });
+    if (i < 6) costs.push({ m: m, car: 'Schwitzkarre', cat: 'Laden', amount: Math.round(60 + rnd() * 40) });
+    if (i === 8) costs.push({ m: m, car: 'Schwitzkarre', cat: 'Service', amount: 368.5 });
+    if (i === 10) costs.push({ m: m, car: 'Schwitzkarre', cat: 'Versicherung', amount: 497.84 });
+  }
+  return { ok: true, trips: trips, costs: costs };
 }
 
 var MOCKS = [];
@@ -588,6 +655,7 @@ var P = {
   box:      '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/>',
   receipt:  '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
   trash:    '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  chart:    '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
   repeat:   '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
   bell:     '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
   arrow:    '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
@@ -604,7 +672,7 @@ function batIcon(soc) {
 var ICON = { 'Julia Brettner': ic('van', 'x'), 'Schwitzkarre': ic('car', 'x') + '<span class="bolt">' + ic('zap', 'x') + '</span>' };
 document.querySelectorAll('[data-i]').forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-i')); });
 var SUB  = { 'Julia Brettner': 'VW T5', 'Schwitzkarre': 'MG5 Elektro' };
-var NEWS_KEY = 'fb-news-2.4';
+var NEWS_KEY = 'fb-news-2.5';
 
 function $(id) { return document.getElementById(id); }
 function fmt(n) { return n == null || isNaN(n) ? '–' : Number(n).toLocaleString('de-AT'); }
@@ -746,11 +814,166 @@ function submitDialog() {
 var VIEW = 'trips';
 function showView(v) {
   VIEW = v; sset('fb-view', v);
-  $('view-trips').hidden = v !== 'trips'; $('view-exp').hidden = v !== 'exp';
-  $('tab-trips').classList.toggle('on', v === 'trips'); $('tab-exp').classList.toggle('on', v === 'exp');
+  $('view-trips').hidden = v !== 'trips'; $('view-exp').hidden = v !== 'exp'; $('view-stats').hidden = v !== 'stats';
+  $('tab-trips').classList.toggle('on', v === 'trips'); $('tab-exp').classList.toggle('on', v === 'exp'); $('tab-stats').classList.toggle('on', v === 'stats');
   if (v === 'exp') loadExp();
+  if (v === 'stats') loadStats();
   window.scrollTo(0, 0);
 }
+
+/* ---------- Statistik ---------- */
+var STATS = null, ST_RANGE = sget('fb-st-range') || '12m', ST_CAR = sget('fb-st-car') || 'all';
+function apiGetStats() {
+  if (DEMO) return mock({ action: 'stats' });
+  return fetch(API_URL + '?action=stats&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap);
+}
+function loadStats() {
+  if (!KEY && !DEMO) return;
+  renderStats();
+  apiGetStats().then(function (d) { STATS = d; renderStats(); }).catch(function (e) { toast(e.message || String(e), true); });
+}
+var MON = ['Jän', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+function monKey(dt) { return dt.getFullYear() + '-' + ('0' + (dt.getMonth() + 1)).slice(-2); }
+function monLbl(k, withYear) { var p = k.split('-'); return MON[+p[1] - 1] + (withYear ? ' ' + p[0].slice(2) : ''); }
+function stMonths() {
+  var now = new Date(), out = [], i;
+  if (ST_RANGE === '12m') { for (i = 11; i >= 0; i--) out.push(monKey(new Date(now.getFullYear(), now.getMonth() - i, 1))); return out; }
+  if (ST_RANGE === 'year') { for (i = 0; i <= now.getMonth(); i++) out.push(monKey(new Date(now.getFullYear(), i, 1))); return out; }
+  var first = STATS.trips.concat(STATS.costs).reduce(function (a, x) { return x.m < a ? x.m : a; }, monKey(now));
+  var p = first.split('-'), dt = new Date(+p[0], +p[1] - 1, 1);
+  while (monKey(dt) <= monKey(now)) { out.push(monKey(dt)); dt = new Date(dt.getFullYear(), dt.getMonth() + 1, 1); }
+  return out;
+}
+function stSeg(id, items, cur, fn) {
+  $(id).innerHTML = items.map(function (it) {
+    return '<button type="button" class="' + (it[0] === cur ? 'on' : '') + '" onclick="' + fn + '(\'' + it[0] + '\')">' + it[1] + '</button>';
+  }).join('');
+}
+function setRange(r) { ST_RANGE = r; sset('fb-st-range', r); renderStats(); }
+function setStCar(c) { ST_CAR = c; sset('fb-st-car', c); renderStats(); }
+function fkm(n) { return fmt(Math.round(n)) + ' km'; }
+function eur0(n) { return Number(n || 0).toLocaleString('de-AT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }); }
+
+function renderStats() {
+  stSeg('st-range', [['12m', '12 Monate'], ['year', 'Dieses Jahr'], ['all', 'Gesamt']], ST_RANGE, 'setRange');
+  stSeg('st-car', [['all', 'Beide Autos'], ['Schwitzkarre', 'Schwitzkarre'], ['Julia Brettner', 'Julia Brettner']], ST_CAR, 'setStCar');
+  if (!STATS) return;
+  var months = stMonths(), inM = {};
+  months.forEach(function (m) { inM[m] = 1; });
+  var carOk = function (c) { return ST_CAR === 'all' || c === ST_CAR; };
+  var trips = STATS.trips.filter(function (t) { return inM[t.m] && carOk(t.car); });
+  var costs = STATS.costs.filter(function (c) { return inM[c.m] && carOk(c.car); });
+  var kmTot = 0, kmH = { PK: 0, TM: 0 }, byM = {}, byP = {}, byCar = {}, costCar = {}, byCat = {};
+  trips.forEach(function (t) {
+    kmTot += t.km; kmH[t.h] = (kmH[t.h] || 0) + t.km;
+    (byM[t.m] = byM[t.m] || { PK: 0, TM: 0 })[t.h] += t.km;
+    (byP[t.p] = byP[t.p] || { km: 0, h: t.h }).km += t.km;
+    (byCar[t.car] = byCar[t.car] || { PK: 0, TM: 0 })[t.h] += t.km;
+  });
+  var costTot = 0;
+  costs.forEach(function (c) { costTot += c.amount; costCar[c.car] = (costCar[c.car] || 0) + c.amount; byCat[c.cat] = (byCat[c.cat] || 0) + c.amount; });
+  var per100 = kmTot ? costTot / kmTot * 100 : 0, pkShare = kmTot ? kmH.PK / kmTot : 0;
+  var rangeTxt = { '12m': 'letzte 12 Monate', year: 'seit Jänner', all: 'seit Beginn' }[ST_RANGE];
+
+  var h = '<div class="kpis">'
+    + '<div class="kpi"><div class="l">Gefahren</div><div class="v">' + fmt(Math.round(kmTot)) + '<small>km</small></div><div class="s">' + rangeTxt + '</div></div>'
+    + '<div class="kpi"><div class="l">Kosten</div><div class="v">' + eur0(costTot) + '</div><div class="s">' + (kmTot ? per100.toLocaleString('de-AT', { maximumFractionDigits: 1 }) + ' € / 100 km' : '–') + '</div></div>'
+    + '<div class="kpi wide"><div class="l">Anteil gefahrene km</div>'
+    + '<div class="split"><i style="flex:' + kmH.PK + ';background:var(--c-pk)"></i><i style="flex:' + kmH.TM + ';background:var(--c-tm)"></i></div>'
+    + '<div class="legend" style="margin:0"><span><i style="background:var(--c-pk)"></i>' + esc(hhLabel('PK')) + ' <b style="color:var(--ink)">' + pct(pkShare) + '</b> · ' + fkm(kmH.PK) + '</span>'
+    + '<span><i style="background:var(--c-tm)"></i>' + esc(hhLabel('TM')) + ' <b style="color:var(--ink)">' + pct(1 - pkShare) + '</b> · ' + fkm(kmH.TM) + '</span></div></div>'
+    + '</div>';
+
+  // km pro Monat (gestapelte Säulen)
+  h += '<div class="card2"><h4>Kilometer pro Monat</h4><div class="sub">gestapelt nach Haushalt · Säule antippen für Details</div>'
+    + '<div class="legend"><span><i style="background:var(--c-pk)"></i>' + esc(hhLabel('PK')) + '</span><span><i style="background:var(--c-tm)"></i>' + esc(hhLabel('TM')) + '</span></div>'
+    + '<div class="chart" id="ch-month"></div>'
+    + '<details class="tv"><summary>Als Tabelle</summary><table class="tbl" style="margin-top:6px"><tr><th>Monat</th><th class="r">' + esc(hhLabel('PK')) + '</th><th class="r">' + esc(hhLabel('TM')) + '</th><th class="r">Summe</th></tr>'
+    + months.slice().reverse().map(function (m) {
+        var v = byM[m] || { PK: 0, TM: 0 };
+        return '<tr><td>' + monLbl(m, true) + '</td><td class="r">' + fmt(v.PK) + '</td><td class="r">' + fmt(v.TM) + '</td><td class="r">' + fmt(v.PK + v.TM) + '</td></tr>';
+      }).join('')
+    + '</table></details></div>';
+
+  // km pro Person
+  var ppl = Object.keys(byP).sort(function (a, b) { return byP[b].km - byP[a].km; }), pmax = ppl.length ? byP[ppl[0]].km : 1;
+  h += '<div class="card2"><h4>Kilometer pro Person</h4><div class="sub">Farbe = Haushalt</div>'
+    + (ppl.length ? ppl.map(function (p) {
+        return '<div class="hbar"><span class="n">' + esc(p) + '</span><span class="b" style="width:' + (byP[p].km / pmax * 100) + '%;background:var(--c-' + byP[p].h.toLowerCase() + ')"></span><span class="val">' + fkm(byP[p].km) + '</span></div>';
+      }).join('') : '<div class="empty">Keine Fahrten im Zeitraum</div>') + '</div>';
+
+  // pro Auto
+  var cars = ['Schwitzkarre', 'Julia Brettner'].filter(carOk);
+  h += '<div class="card2"><h4>Pro Auto</h4><div class="sub">' + rangeTxt + '</div><table class="tbl"><tr><th>Auto</th><th class="r">km</th><th class="r">Kosten</th><th class="r">€/100 km</th></tr>'
+    + cars.map(function (c) {
+        var k = byCar[c] ? byCar[c].PK + byCar[c].TM : 0, co = costCar[c] || 0;
+        return '<tr><td>' + esc(c) + '</td><td class="r">' + fmt(k) + '</td><td class="r">' + eur0(co) + '</td><td class="r">' + (k ? (co / k * 100).toLocaleString('de-AT', { maximumFractionDigits: 1 }) : '–') + '</td></tr>';
+      }).join('') + '</table>'
+    + '<div class="note2">Kosten = alle erfassten Ausgaben im Zeitraum (inkl. Versicherung). MG5-Ladekosten sind nur bis zur letzten manuellen Ladeabrechnung enthalten – die automatische Erfassung über Node-RED folgt.</div></div>';
+
+  // Kosten nach Kategorie
+  var cats = Object.keys(byCat).sort(function (a, b) { return byCat[b] - byCat[a]; }), cmax = cats.length ? byCat[cats[0]] : 1;
+  h += '<div class="card2"><h4>Kosten nach Kategorie</h4><div class="sub">' + rangeTxt + '</div>'
+    + (cats.length ? cats.map(function (c) {
+        return '<div class="hbar"><span class="n">' + esc(c) + '</span><span class="b" style="width:' + (byCat[c] / cmax * 100) + '%;background:var(--c-one)"></span><span class="val">' + eur0(byCat[c]) + '</span></div>';
+      }).join('') : '<div class="empty">Keine Ausgaben im Zeitraum</div>') + '</div>';
+
+  $('st-body').innerHTML = h;
+  drawMonthChart(months, byM);
+}
+
+function drawMonthChart(months, byM) {
+  var el = $('ch-month'), W = Math.max(300, el.clientWidth || 320), H = 190, padL = 34, padB = 22, padT = 8;
+  var n = months.length, max = 0;
+  months.forEach(function (m) { var v = byM[m] || { PK: 0, TM: 0 }; max = Math.max(max, v.PK + v.TM); });
+  var step = max > 4000 ? 1000 : max > 2000 ? 500 : max > 800 ? 200 : 100, top = Math.max(step, Math.ceil(max / step) * step);
+  var cw = (W - padL) / n, bw = Math.min(24, cw * 0.62), y = function (v) { return padT + (H - padT - padB) * (1 - v / top); };
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Kilometer pro Monat">';
+  for (var g = 0; g <= top; g += step) {
+    svg += '<line class="gl" x1="' + padL + '" x2="' + W + '" y1="' + y(g) + '" y2="' + y(g) + '"/>'
+         + '<text x="' + (padL - 6) + '" y="' + (y(g) + 4) + '" text-anchor="end">' + (g >= 1000 ? (g / 1000).toLocaleString('de-AT') + 'K' : g) + '</text>';
+  }
+  var everyN = n > 14 ? 3 : n > 8 ? 2 : 1;
+  months.forEach(function (m, i) {
+    var v = byM[m] || { PK: 0, TM: 0 }, x = padL + cw * i + (cw - bw) / 2, base = y(0);
+    var hPK = base - y(v.PK), hTM = base - y(v.PK + v.TM) - hPK, gap = (v.PK && v.TM) ? 2 : 0;
+    if (v.PK) svg += '<path d="' + barPath(x, base - hPK, bw, hPK, !v.TM) + '" fill="var(--c-pk)"/>';
+    if (v.TM) svg += '<path d="' + barPath(x, base - hPK - hTM, bw, Math.max(0, hTM - gap), true) + '" fill="var(--c-tm)"/>';
+    if (i % everyN === (n - 1) % everyN) svg += '<text x="' + (x + bw / 2) + '" y="' + (H - 6) + '" text-anchor="middle">' + monLbl(m, m.slice(5) === '01' || i === 0) + '</text>';
+    svg += '<rect class="hit" data-i="' + i + '" x="' + (padL + cw * i) + '" y="' + padT + '" width="' + cw + '" height="' + (H - padT - padB) + '"/>';
+  });
+  svg += '<line x1="' + padL + '" x2="' + W + '" y1="' + y(0) + '" y2="' + y(0) + '" stroke="var(--muted)" stroke-width="1" opacity=".5"/></svg>';
+  el.innerHTML = svg;
+  var card = el.closest('.card2'), tip = document.createElement('div');
+  tip.className = 'tip'; tip.hidden = true; card.appendChild(tip);
+  el.querySelectorAll('.hit').forEach(function (r) {
+    var show = function () {
+      el.querySelectorAll('.hit.on').forEach(function (x) { x.classList.remove('on'); });
+      r.classList.add('on');
+      var i = +r.getAttribute('data-i'), m = months[i], v = byM[m] || { PK: 0, TM: 0 };
+      tip.innerHTML = '<b>' + monLbl(m, true) + ' · ' + fkm(v.PK + v.TM) + '</b><br><i style="background:var(--c-pk)"></i>' + esc(hhLabel('PK')) + ' <b>' + fkm(v.PK)
+        + '</b><br><i style="background:var(--c-tm)"></i>' + esc(hhLabel('TM')) + ' <b>' + fkm(v.TM) + '</b>';
+      var cr = card.getBoundingClientRect(), rr = r.getBoundingClientRect();
+      var left = rr.left - cr.left + rr.width / 2;
+      left = Math.max(90, Math.min(cr.width - 90, left));
+      tip.style.left = left + 'px'; tip.style.top = (el.offsetTop + 4) + 'px'; tip.hidden = false;
+    };
+    r.addEventListener('pointerenter', function (ev) { if (ev.pointerType === 'mouse') show(); });
+    r.addEventListener('click', show);
+  });
+  var hide = function () { tip.hidden = true; el.querySelectorAll('.hit.on').forEach(function (x) { x.classList.remove('on'); }); };
+  el.addEventListener('pointerleave', function (ev) { if (ev.pointerType === 'mouse') hide(); });
+  document.addEventListener('click', function (ev) { if (!el.contains(ev.target)) hide(); });
+}
+/* Säule: oben 4px gerundet (nur oberstes Segment), unten eckig */
+function barPath(x, yTop, w, h, roundTop) {
+  if (h <= 0) return '';
+  var r = roundTop ? Math.min(4, h, w / 2) : 0;
+  return 'M' + x + ',' + (yTop + h) + 'V' + (yTop + r) + (r ? 'Q' + x + ',' + yTop + ' ' + (x + r) + ',' + yTop : '') + 'H' + (x + w - r)
+       + (r ? 'Q' + (x + w) + ',' + yTop + ' ' + (x + w) + ',' + (yTop + r) : '') + 'V' + (yTop + h) + 'Z';
+}
+window.addEventListener('resize', function () { if (VIEW === 'stats' && STATS) renderStats(); });
 
 /* ---------- Ausgaben ---------- */
 var EXP = null, XF = null, SHOW_DONE = false;
@@ -1110,7 +1333,7 @@ load();
 loadExp();   // auch im Fahrten-Tab, damit die rote Zahl stimmt
 setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } }, 60000);   // alle 60 s still aktualisieren
 document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } });
-if (sget('fb-view') === 'exp') showView('exp');
+if (sget('fb-view') === 'exp' || sget('fb-view') === 'stats') showView(sget('fb-view'));
 </script>
 </body>
 </html>

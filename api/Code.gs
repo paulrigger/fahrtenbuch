@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.4';
+const VERSION = '2.5';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -65,6 +65,7 @@ function doGet(e) {
     const action = p.action || 'all';
     if (action === 'all') return all_();
     if (action === 'expenses') { ensureRecurring_(); return expensesResponse_(); }
+    if (action === 'stats') return statsResponse_();
     throw new Error('Unbekannte Aktion: ' + action);
   });
 }
@@ -790,6 +791,42 @@ function addStage_(o, amt, from, driver) {
   if (same) { sh.getRange(same.row, 5).setValue(amt); return; }
   sh.appendRow([o.id, o.car, o.cat, o.label, amt, o.interval, o.day, o.interval === 'jährlich' ? (o.month || '') : '', from,
                 o.until || '', HH_LABELS[o.payer], splitLabel_(o.split), o.adjust, driver]);
+}
+
+// ================================================================ Statistik (v2.5)
+// Liefert kompakte Monatswerte; das Frontend aggregiert nach Zeitraum.
+//   trips: [{ m:'2026-10', car, p:'Paul', h:'PK', km }]   (Fahrten ohne Datum erben das Datum der Vorzeile)
+//   costs: [{ m:'2026-10', car, cat, amount }]          (ohne Entwürfe)
+
+function statsResponse_() {
+  const tz = Session.getScriptTimeZone(), agg = {};
+  Object.keys(CARS).forEach(function (car) {
+    const sh = sheet_(car), n = sh.getLastRow();
+    if (n < 2) return;
+    let lastM = '';
+    sh.getRange(2, 1, n - 1, 5).getValues().forEach(function (r) {
+      let m = '';
+      if (r[0] instanceof Date) m = Utilities.formatDate(r[0], tz, 'yyyy-MM');
+      else if (fmtDate_(r[0])) m = fmtDate_(r[0]).slice(0, 7);
+      if (/^\d{4}-\d{2}$/.test(m)) lastM = m; else m = lastM;
+      const s = num_(r[1]), e = num_(r[2]), h = household_(r[4]);
+      if (!m || s == null || e == null || e <= s || e - s > MAX_TRIP_KM || !h) return;
+      const p = DRIVERS.filter(function (d) { return String(r[4]).toLowerCase().indexOf(d.toLowerCase()) >= 0; })[0] || h;
+      const k = m + '|' + car + '|' + p;
+      (agg[k] = agg[k] || { m: m, car: car, p: p, h: h, km: 0 }).km += e - s;
+    });
+  });
+  const costs = {};
+  readExpenses_().forEach(function (e) {
+    if (e.status === 'Entwurf') return;
+    const k = e.date.slice(0, 7) + '|' + e.car + '|' + e.cat;
+    (costs[k] = costs[k] || { m: e.date.slice(0, 7), car: e.car, cat: e.cat, amount: 0 }).amount += e.amount;
+  });
+  return {
+    ok: true,
+    trips: Object.keys(agg).map(function (k) { return agg[k]; }),
+    costs: Object.keys(costs).map(function (k) { const c = costs[k]; c.amount = Math.round(c.amount * 100) / 100; return c; })
+  };
 }
 
 /** Einmalig im Editor ausführen: schreibt Haushalte im Tab "Buchungen" aus (statt PK/TM) und setzt Überschriften. */
