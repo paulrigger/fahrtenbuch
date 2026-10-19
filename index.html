@@ -223,6 +223,27 @@
   .settle .btn { width: 100%; margin-top: 12px; }
   .settle .wait { font-size: 14px; margin-top: 12px; padding: 10px 12px; border-radius: 12px; background: var(--raised); }
   .settle .linkbtn { color: var(--muted); font-size: 14px; }
+  .draft { border-radius: 20px; padding: 16px 18px; margin-top: 14px; background: var(--warn-bg); color: var(--ink); box-shadow: var(--shadow); }
+  .draft .lbl { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; display: flex; align-items: center; gap: 6px; color: var(--warn-ink); }
+  .draft .lbl .ic { width: 16px; height: 16px; }
+  .draft .t { font-size: 17px; font-weight: 700; margin: 6px 0 2px; }
+  .draft .meta { font-size: 13.5px; color: var(--muted); }
+  .draft .row2 { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 12px; align-items: end; }
+  .draft input { font-size: 20px; padding: 10px 12px; }
+  .draft .btn { padding: 13px 16px; }
+  .remind { border-radius: 16px; padding: 12px 14px; margin-top: 14px; background: var(--warn-bg); color: var(--warn-ink); font-size: 14.5px; line-height: 1.45; cursor: pointer; display: flex; gap: 10px; align-items: flex-start; }
+  .remind .ic { width: 20px; height: 20px; flex: none; margin-top: 1px; }
+  .remind b { color: var(--ink); }
+  .oi .t { background: linear-gradient(145deg, var(--blue-slate, #5c6672), var(--baltic-blue)); }
+  .oi .t.Julia { background: linear-gradient(145deg, var(--classic-crimson), var(--rosewood)); }
+  .oi .t.Schwitzkarre { background: linear-gradient(145deg, var(--turquoise-surf), var(--baltic-blue)); }
+  .hist { margin-top: 12px; border-radius: 14px; background: var(--raised); padding: 6px 14px; }
+  .hist div { display: flex; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line); font-size: 15px; font-variant-numeric: tabular-nums; }
+  .hist div:first-child { border-top: 0; }
+  .hist .cur { font-weight: 700; }
+  .infoline { font-size: 14px; color: var(--muted); line-height: 1.5; margin-top: 4px; }
+  .infoline b { color: var(--ink); }
+  .sectitle { font-size: 16px; font-weight: 700; margin: 18px 0 6px; }
   .add-exp { width: 100%; padding: 18px 12px; font-size: 18px; border-radius: 18px; box-shadow: 0 8px 24px -10px rgba(6,28,40,.5); }
   .add-exp .ic { width: 22px; height: 22px; }
   .list-h { display: flex; justify-content: space-between; align-items: baseline; margin: 6px 4px 0; font-size: 13px; font-weight: 700;
@@ -285,7 +306,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>Fahrtenbuch <span class="badge">2.3</span></h1>
+      <h1>Fahrtenbuch <span class="badge">2.4</span></h1>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button class="me-btn" id="me" onclick="openPicker()"></button>
@@ -295,10 +316,11 @@
 
   <div class="news" id="news" hidden>
     <button class="x" aria-label="Schließen" onclick="hideNews()" data-i="x"></button>
-    <b><span data-i="sparkles"></span>Neu in Version 2.3</b>
+    <b><span data-i="sparkles"></span>Neu in Version 2.4</b>
     <ul>
-      <li><b style="display:inline">Abrechnen</b>: die zahlende Seite rechnet den Saldo per Knopfdruck ab, die andere Seite bestätigt den Erhalt</li>
-      <li>Ausgaben: Tanken, Versicherung, Service &amp; Co. direkt eintragen, Tanken wird nach km aufgeteilt</li>
+      <li><b style="display:inline">Daueraufträge</b> für die Versicherungen: werden automatisch gebucht, Betrag mit „gültig ab" änderbar</li>
+      <li>Jährliche Beträge kommen als Entwurf – die zahlende Seite bestätigt den Betrag laut Rechnung</li>
+      <li><b style="display:inline">Abrechnen</b> per Knopf, die andere Seite bestätigt den Erhalt</li>
     </ul>
   </div>
 
@@ -310,7 +332,9 @@
     <button class="btn primary add-exp" id="add-exp" onclick="openExp()"><span data-i="plus"></span>Neue Ausgabe eintragen</button>
     <div class="saldo" id="saldo" style="margin-top:14px"><div class="skeleton" style="height:120px"></div></div>
     <div id="settlements"></div>
+    <div id="drafts"></div>
     <div id="xlists" style="display:flex;flex-direction:column;gap:10px;margin-top:14px"></div>
+    <div id="olist" style="display:flex;flex-direction:column;gap:10px;margin-top:10px"></div>
   </section>
 
   <a class="sheet-link" id="sheet-link" href="#" target="_blank" hidden><span data-i="sheet"></span>Google Sheet öffnen</a>
@@ -322,7 +346,7 @@
   <button id="tab-exp" onclick="showView('exp')"><span data-i="receipt"></span>Ausgaben</button>
 </nav>
 
-<div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp()"></div>
+<div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp(); closeOrd()"></div>
 
 <div class="dialog tall" id="xdlg" role="dialog" aria-modal="true">
   <div class="grab"></div>
@@ -376,6 +400,46 @@
   <div class="row" style="grid-template-columns:1fr"><button class="btn ghost" id="picker-cancel" onclick="closePicker()">Abbrechen</button></div>
 </div>
 
+<div class="dialog tall" id="odlg" role="dialog" aria-modal="true">
+  <div class="grab"></div>
+  <h3 id="o-title">Dauerauftrag</h3>
+  <p class="sub" id="o-sub"></p>
+  <!-- Ansicht / Ändern -->
+  <div id="o-view">
+    <div class="infoline" id="o-info"></div>
+    <div class="hist" id="o-hist"></div>
+    <div class="sectitle">Betrag ändern</div>
+    <div class="fields">
+      <div><label for="o-newamt">Neuer Betrag (€)</label><input id="o-newamt" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
+      <div><label for="o-from">gültig ab</label><input id="o-from" type="date"></div>
+    </div>
+    <div class="msg" id="o-msg"></div>
+    <div class="row">
+      <button class="btn ghost" onclick="closeOrd()">Schließen</button>
+      <button class="btn primary" id="o-save" onclick="saveOrdAmount()">Betrag ändern</button>
+    </div>
+    <button class="linkbtn" id="o-end" onclick="endOrd()"><span data-i="x"></span>Dauerauftrag beenden</button>
+  </div>
+  <!-- Neu -->
+  <div id="o-new">
+    <div class="seg" id="on-car"></div>
+    <div class="fgroup"><label for="on-label">Bezeichnung</label><input id="on-label" class="small" type="text" autocomplete="off" maxlength="80" placeholder="z. B. Versicherung T5"></div>
+    <div class="fields fgroup">
+      <div><label for="on-amt">Betrag (€)</label><input id="on-amt" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00"></div>
+      <div><label for="on-first">Erste Fälligkeit</label><input id="on-first" type="date"></div>
+    </div>
+    <div class="fgroup"><label>Intervall</label><div class="seg" id="on-int"></div></div>
+    <div class="fgroup"><label>Bezahlt von</label><div class="seg" id="on-payer"></div></div>
+    <div class="fgroup"><label for="on-adj">Jährliche Anpassung am (optional, TT.MM)</label><input id="on-adj" class="small" type="text" inputmode="numeric" autocomplete="off" placeholder="z. B. 01.10"></div>
+    <div class="infoline" style="margin-top:12px">Aufteilung: <b>je zur Hälfte</b>. Monatliche Aufträge werden automatisch gebucht, jährliche als Entwurf zum Prüfen.</div>
+    <div class="msg" id="on-msg"></div>
+    <div class="row">
+      <button class="btn ghost" onclick="closeOrd()">Abbrechen</button>
+      <button class="btn primary" id="on-save" onclick="saveNewOrd()">Anlegen</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -408,7 +472,7 @@ function apiPost(body) {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.3 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.4 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -417,7 +481,7 @@ function mock(b) {
   return new Promise(function (res) { setTimeout(function () {
     if (b.action === 'all') return res(JSON.parse(JSON.stringify(MOCK)));
     if (b.action === 'expenses') return res(mockExp());
-    if (/Expense$|ettle/.test(b.action)) { try { return res(mockExpAction(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
+    if (/Expense$|ettle|Order|Draft/.test(b.action)) { try { return res(mockExpAction(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
     var c = MOCK.cars.filter(function (x) { return x.sheet === b.sheet; })[0];
     if (b.action === 'start') { c.open = true; c.startKM = +b.startKM; c.lastKM = +b.startKM; c.driver = b.driver; c.date = 'heute';
       return res({ ok: true, mode: 'started', start: c.startKM, cars: MOCK.cars }); }
@@ -427,9 +491,17 @@ function mock(b) {
 }
 
 var MOCKS = [];
+var MOCKO = [
+  { id: 'O1', car: 'Julia Brettner', cat: 'Versicherung', label: 'Versicherung T5', interval: 'monatlich', day: 1, month: null, payer: 'PK', split: '50:50',
+    amount: 94.11, next: '2026-02-01', until: '', start: '2025-10-01', adjust: '01.10', adjustDate: '2026-10-01', remind: false,
+    stages: [{ from: '2025-10-01', amount: 93.02 }, { from: '2026-01-01', amount: 94.11 }] },
+  { id: 'O2', car: 'Schwitzkarre', cat: 'Versicherung', label: 'Jahresversicherung MG5', interval: 'jährlich', day: 18, month: 1, payer: 'TM', split: '50:50',
+    amount: 497.84, next: '2027-01-18', until: '', start: '2026-01-18', adjust: '', adjustDate: '', remind: false, stages: [{ from: '2026-01-18', amount: 497.84 }] }
+];
 var MOCKX = [
   { id: 'D3', date: '2026-01-05', car: 'Julia Brettner', cat: 'Tanken', amount: 40, payer: 'TM', split: 'km', km: 50020, full: false, note: '', status: 'offen' },
-  { id: 'D2', date: '2026-01-02', car: 'Schwitzkarre', cat: 'Versicherung', amount: 93.02, payer: 'PK', split: '50:50', note: 'Oktober', status: 'offen' },
+  { id: 'D2', date: '2026-01-01', car: 'Julia Brettner', cat: 'Versicherung', amount: 94.11, payer: 'PK', split: '50:50', note: 'Versicherung T5', status: 'offen', order: 'O1@2026-01-01' },
+  { id: 'D4', date: '2026-01-18', car: 'Schwitzkarre', cat: 'Versicherung', amount: 497.84, payer: 'TM', split: '50:50', note: 'Jahresversicherung MG5 – Betrag prüfen', status: 'Entwurf', order: 'O2@2026-01-18' },
   { id: 'D1', date: '2025-12-20', car: 'Julia Brettner', cat: 'Tanken', amount: 98.5, payer: 'PK', split: 'fix', fixShare: 0.62, km: 49800, full: true, note: 'Altdaten', status: 'abgerechnet' }
 ];
 function mockExp() {
@@ -444,13 +516,31 @@ function mockExp() {
   var saldo = list.filter(function (e) { return e.status === 'offen'; }).reduce(function (a, e) { return a + e.balance; }, 0);
   return { ok: true, expenses: list, saldo: Math.round(saldo * 100) / 100, saldoProvisional: list.some(function (e) { return e.provisional && e.status === 'offen'; }),
            settlements: MOCKS.filter(function (x) { return x.status === 'offen'; }),
-           tankWindow: tw, categories: { 'Julia Brettner': ['Tanken', 'Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges'], 'Schwitzkarre': ['Versicherung', 'Service', 'Reifen', 'Schaden', 'Sonstiges'] } };
+           orders: JSON.parse(JSON.stringify(MOCKO)),
+           tankWindow: tw, categories: { 'Julia Brettner': ['Tanken', 'Service', 'Schaden', 'Sonstiges'], 'Schwitzkarre': ['Service', 'Schaden', 'Sonstiges'] } };
 }
 function mockExpAction(b) {
   if (b.action === 'addExpense') MOCKX.push(Object.assign({ id: 'D' + Date.now(), status: 'offen' }, b.expense));
   if (b.action === 'updateExpense') Object.assign(MOCKX.filter(function (e) { return e.id === b.id; })[0], b.expense);
   if (b.action === 'deleteExpense') MOCKX = MOCKX.filter(function (e) { return e.id !== b.id; });
   var me = MOCK.households[b.driver], cur = mockExp();
+  if (b.action === 'confirmDraft') {
+    var dr = MOCKX.filter(function (e) { return e.id === b.id; })[0];
+    if (me !== dr.payer) throw new Error('Bestätigen kann nur ' + MOCK.hhLabels[dr.payer] + ' (zahlende Seite).');
+    dr.amount = dnum(b.amount); dr.status = 'offen'; dr.note = dr.note.replace(/ – Betrag prüfen$/, '');
+  }
+  if (b.action === 'addOrder') {
+    var x = b.order, f = x.first.split('-');
+    MOCKO.push({ id: 'O' + Date.now(), car: x.car, cat: x.cat, label: x.label || x.cat, interval: x.interval, day: +f[2], month: x.interval === 'jährlich' ? +f[1] : null,
+      payer: x.payer, split: x.split || '50:50', amount: dnum(x.amount), next: x.first, until: '', start: x.first, adjust: x.adjust || '', adjustDate: '', remind: false,
+      stages: [{ from: x.first, amount: dnum(x.amount) }] });
+  }
+  if (b.action === 'changeOrderAmount') {
+    var o = MOCKO.filter(function (y) { return y.id === b.id; })[0];
+    o.stages.push({ from: b.from, amount: dnum(b.amount) }); o.amount = dnum(b.amount); o.remind = false;
+  }
+  if (b.action === 'endOrder') { var o2 = MOCKO.filter(function (y) { return y.id === b.id; })[0]; o2.until = b.until; o2.next = ''; }
+  if (/Order|Draft/.test(b.action)) return mockExp();
   if (b.action === 'settle') {
     var from = cur.saldo > 0 ? 'TM' : 'PK', to = from === 'TM' ? 'PK' : 'TM';
     if (me !== from) throw new Error('Abrechnen kann nur die zahlende Seite (' + MOCK.hhLabels[from] + ').');
@@ -491,6 +581,8 @@ var P = {
   box:      '<path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/>',
   receipt:  '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
   trash:    '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+  repeat:   '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+  bell:     '<path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/>',
   arrow:    '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
   pin:      '<path d="M20 10c0 4.99-5.54 10.19-7.4 11.8a1 1 0 0 1-1.2 0C9.54 20.19 4 14.99 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/>'
 };
@@ -505,7 +597,7 @@ function batIcon(soc) {
 var ICON = { 'Julia Brettner': ic('van', 'x'), 'Schwitzkarre': ic('car', 'x') + '<span class="bolt">' + ic('zap', 'x') + '</span>' };
 document.querySelectorAll('[data-i]').forEach(function (el) { el.innerHTML = ic(el.getAttribute('data-i')); });
 var SUB  = { 'Julia Brettner': 'VW T5', 'Schwitzkarre': 'MG5 Elektro' };
-var NEWS_KEY = 'fb-news-2.3';
+var NEWS_KEY = 'fb-news-2.4';
 
 function $(id) { return document.getElementById(id); }
 function fmt(n) { return n == null || isNaN(n) ? '–' : Number(n).toLocaleString('de-AT'); }
@@ -716,6 +808,112 @@ function renderExp() {
     + '<div class="list-h"><span>Abgerechnet · ' + done.length + '</span><button onclick="SHOW_DONE=!SHOW_DONE;renderExp()">' + (SHOW_DONE ? 'ausblenden' : 'anzeigen') + '</button></div>'
     + (SHOW_DONE && done.length ? '<div class="xlist">' + done.map(xItem).join('') + '</div>' : '');
   $('xlists').innerHTML = html;
+  renderOrders();
+}
+
+/* ---------- Daueraufträge ---------- */
+var CUR_ORD = null;
+function intLabel(o) {
+  return o.interval === 'jährlich' ? 'jährlich am ' + ('0' + o.day).slice(-2) + '.' + ('0' + o.month).slice(-2) + '.' : 'monatlich am ' + o.day + '.';
+}
+function renderOrders() {
+  var orders = EXP.orders || [];
+  // Entwürfe (jährliche Fälligkeiten)
+  var drafts = EXP.expenses.filter(function (e) { return e.status === 'Entwurf'; });
+  var dh = drafts.map(function (e) {
+    var mine = myHH() === e.payer;
+    return '<div class="draft"><div class="lbl">' + ic('bell') + 'Betrag prüfen</div>'
+      + '<div class="t">' + esc(e.note.replace(/ – Betrag prüfen$/, '')) + ' · fällig ' + dDE(e.date) + '</div>'
+      + '<div class="meta">Vorschlag aus dem Vorjahr. ' + (mine ? 'Bitte den tatsächlichen Betrag laut Rechnung bestätigen.' : 'Bestätigt wird von ' + esc(hhLabel(e.payer)) + '.') + '</div>'
+      + (mine ? '<div class="row2"><input type="text" inputmode="decimal" id="dr-' + esc(e.id) + '" value="' + String(e.amount).replace('.', ',') + '">'
+               + '<button class="btn primary" onclick="confirmDraft(\'' + esc(e.id) + '\')">' + ic('check') + 'Bestätigen</button></div>'
+             : '<div class="t" style="margin-top:8px">' + eur(e.amount) + '</div>')
+      + '</div>';
+  }).join('');
+  // Erinnerungen vor Anpassung
+  dh += orders.filter(function (o) { return o.remind; }).map(function (o) {
+    return '<div class="remind" onclick="openOrd(\'' + esc(o.id) + '\')">' + ic('bell') + '<div><b>' + esc(o.label) + '</b> ändert sich am ' + dDE(o.adjustDate)
+      + '. Bitte den neuen Betrag eintragen – hier tippen.</div></div>';
+  }).join('');
+  $('drafts').innerHTML = dh;
+
+  var active = orders.filter(function (o) { return !o.until || o.until >= todayISO(); });
+  $('olist').innerHTML = '<div class="list-h"><span>Daueraufträge · ' + active.length + '</span><button onclick="openOrd()">＋ neu</button></div>'
+    + (active.length ? '<div class="xlist">' + active.map(function (o) {
+        return '<div class="xi oi" onclick="openOrd(\'' + esc(o.id) + '\')"><div class="t ' + (o.car === 'Schwitzkarre' ? 'Schwitzkarre' : 'Julia') + '">' + ic('repeat') + '</div>'
+          + '<div class="m"><b>' + esc(o.label) + '</b><span>' + intLabel(o) + ' · bezahlt von ' + esc(hhLabel(o.payer)).replace(/ /g, '&nbsp;') + '</span>'
+          + '<span>' + (o.next ? 'nächste Buchung ' + dDE(o.next) : 'keine weitere Buchung') + '</span></div>'
+          + '<div class="r"><b>' + eur(o.amount) + '</b><span>' + (o.interval === 'jährlich' ? 'pro Jahr' : 'pro Monat') + '</span></div></div>';
+      }).join('') + '</div>'
+      : '<div class="xlist"><div class="empty">Noch keine Daueraufträge</div></div>');
+}
+
+function openOrd(id) {
+  if (!ME) return openPicker(true);
+  var o = id ? (EXP.orders || []).filter(function (x) { return x.id === id; })[0] : null;
+  CUR_ORD = o ? JSON.parse(JSON.stringify(o)) : { isNew: true, car: 'Julia Brettner', interval: 'monatlich', payer: myHH() };
+  $('o-view').style.display = o ? '' : 'none'; $('o-new').style.display = o ? 'none' : '';
+  $('o-msg').className = 'msg'; $('on-msg').className = 'msg';
+  if (o) {
+    $('o-title').textContent = o.label;
+    $('o-sub').textContent = (o.car) + ' · ' + intLabel(o);
+    $('o-info').innerHTML = 'Bezahlt von <b>' + esc(hhLabel(o.payer)) + '</b> · je zur Hälfte<br>'
+      + (o.next ? 'Nächste Buchung <b>' + dDE(o.next) + '</b> über <b>' + eur(o.amount) + '</b>' : 'Beendet' + (o.until ? ' zum ' + dDE(o.until) : ''))
+      + (o.adjust ? '<br>Jährliche Anpassung am <b>' + esc(o.adjust) + '.</b>' : '');
+    var st = o.stages.slice().sort(function (a, b) { return a.from < b.from ? 1 : -1; });
+    $('o-hist').innerHTML = st.map(function (x, i) {
+      return '<div class="' + (i === 0 ? 'cur' : '') + '"><span>ab ' + dDE(x.from) + '</span><span>' + eur(x.amount) + '</span></div>';
+    }).join('');
+    $('o-newamt').value = '';
+    $('o-from').value = o.adjustDate || o.next || todayISO();
+    $('o-end').style.display = o.until ? 'none' : '';
+  } else {
+    $('o-title').textContent = 'Neuer Dauerauftrag'; $('o-sub').textContent = 'z. B. Versicherung';
+    $('on-label').value = ''; $('on-amt').value = ''; $('on-first').value = todayISO(); $('on-adj').value = '';
+    renderNewOrd();
+  }
+  $('backdrop').classList.add('show'); $('odlg').classList.add('show');
+}
+function renderNewOrd() {
+  var c = CUR_ORD;
+  $('on-car').innerHTML = [['Schwitzkarre', 'Schwitzkarre'], ['Julia Brettner', 'Julia Brettner']].map(function (it) {
+    return '<button type="button" class="' + (it[0] === c.car ? 'on' : '') + '" onclick="CUR_ORD.car=\'' + it[0] + '\';renderNewOrd()">' + it[1] + '</button>'; }).join('');
+  $('on-int').innerHTML = [['monatlich', 'monatlich'], ['jährlich', 'jährlich']].map(function (it) {
+    return '<button type="button" class="' + (it[0] === c.interval ? 'on' : '') + '" onclick="CUR_ORD.interval=\'' + it[0] + '\';renderNewOrd()">' + it[1] + '</button>'; }).join('');
+  $('on-payer').innerHTML = [['PK', esc(hhLabel('PK'))], ['TM', esc(hhLabel('TM'))]].map(function (it) {
+    return '<button type="button" class="' + (it[0] === c.payer ? 'on' : '') + '" onclick="CUR_ORD.payer=\'' + it[0] + '\';renderNewOrd()">' + it[1] + '</button>'; }).join('');
+}
+function closeOrd() { $('odlg').classList.remove('show'); if (!DLG && !XF && !$('picker').classList.contains('show')) $('backdrop').classList.remove('show'); CUR_ORD = null; }
+function ordCall(body, msgEl, btn, okMsg) {
+  if (btn) { btn.disabled = true; }
+  return apiPost(body).then(function (d) { EXP = d; closeOrd(); renderExp(); toast(okMsg, false, 'check'); })
+    .catch(function (e) { if (btn) btn.disabled = false; $(msgEl).className = 'msg err'; $(msgEl).textContent = e.message || String(e); });
+}
+function saveOrdAmount() {
+  var a = dnum($('o-newamt').value), f = $('o-from').value;
+  if (!(a > 0)) { $('o-msg').className = 'msg err'; $('o-msg').textContent = 'Bitte den neuen Betrag eingeben.'; return; }
+  if (!f) { $('o-msg').className = 'msg err'; $('o-msg').textContent = 'Bitte „gültig ab" wählen.'; return; }
+  ordCall({ action: 'changeOrderAmount', id: CUR_ORD.id, amount: a, from: f }, 'o-msg', $('o-save'), 'Neuer Betrag ab ' + dDE(f) + ' gespeichert');
+}
+function endOrd() {
+  var u = prompt('Dauerauftrag beenden zum (TT.MM.JJJJ):', dDE(todayISO()));
+  if (!u) return;
+  var p = u.trim().split('.'); if (p.length !== 3) return toast('Datum bitte als TT.MM.JJJJ', true);
+  var iso = p[2] + '-' + ('0' + p[1]).slice(-2) + '-' + ('0' + p[0]).slice(-2);
+  ordCall({ action: 'endOrder', id: CUR_ORD.id, until: iso }, 'o-msg', null, 'Dauerauftrag beendet');
+}
+function saveNewOrd() {
+  var c = CUR_ORD, a = dnum($('on-amt').value), f = $('on-first').value;
+  if (!(a > 0)) { $('on-msg').className = 'msg err'; $('on-msg').textContent = 'Bitte einen Betrag eingeben.'; return; }
+  if (!f) { $('on-msg').className = 'msg err'; $('on-msg').textContent = 'Bitte die erste Fälligkeit wählen.'; return; }
+  ordCall({ action: 'addOrder', order: { car: c.car, cat: 'Versicherung', label: $('on-label').value.trim(), amount: a, interval: c.interval,
+            first: f, payer: c.payer, split: '50:50', adjust: $('on-adj').value.trim() } }, 'on-msg', $('on-save'), 'Dauerauftrag angelegt');
+}
+function confirmDraft(id) {
+  var a = dnum($('dr-' + id).value);
+  if (!(a > 0)) return toast('Bitte einen gültigen Betrag eingeben.', true);
+  apiPost({ action: 'confirmDraft', id: id, amount: a }).then(function (d) { EXP = d; renderExp(); toast('Betrag bestätigt – gebucht', false, 'check'); })
+    .catch(function (e) { toast(e.message || String(e), true); });
 }
 function xItem(e) {
   var title = esc(e.cat) + ' · ' + (CAR_SHORT[e.car] || esc(e.car));
@@ -725,7 +923,7 @@ function xItem(e) {
   var split = e.split === 'PK' || e.split === 'TM' ? 'trägt nur ' + nb(e.split)
             : Math.abs(e.share - 0.5) < 0.0001 ? 'je zur Hälfte'
             : nb('PK') + '&nbsp;' + pct(e.share).replace(' ', '&nbsp;') + ' · ' + nb('TM') + '&nbsp;' + pct(1 - e.share).replace(' ', '&nbsp;');
-  var sh = e.provisional ? '<span class="tag">vorläufig</span>' : '';
+  var sh = e.provisional ? '<span class="tag">vorläufig</span>' : e.order ? '<span class="tag" style="background:var(--raised);color:var(--muted)">Dauerauftrag</span>' : '';
   return '<div class="xi" onclick="openExp(null,\'' + esc(e.id) + '\')"><div class="t ' + (e.car === 'Schwitzkarre' ? 'Schwitzkarre' : 'Julia') + '">' + ic(CAT_ICON[e.cat] || 'box') + '</div>'
     + '<div class="m"><b>' + title + '</b><span>' + sub + '</span><span>' + paid + '</span><span>' + split + '</span></div>'
     + '<div class="r"><b>' + eur(e.amount) + '</b><span>' + sh + '</span></div></div>';
@@ -878,7 +1076,7 @@ if (!sget(NEWS_KEY)) $('news').hidden = false;
 
 renderMe();
 load();
-setInterval(function () { if (!document.hidden && !DLG && !XF) { load(); if (VIEW === 'exp') loadExp(); } }, 60000);   // alle 60 s still aktualisieren
+setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); if (VIEW === 'exp') loadExp(); } }, 60000);   // alle 60 s still aktualisieren
 document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG && !XF) { load(); if (VIEW === 'exp') loadExp(); } });
 if (sget('fb-view') === 'exp') showView('exp');
 </script>

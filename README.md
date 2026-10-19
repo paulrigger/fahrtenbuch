@@ -53,6 +53,16 @@ Fahrten und Ausgaben werden am Handy erfasst, die Kosten automatisch nach Vertra
 
 ![Abrechnung](docs/abrechnung.png)
 
+**Daueraufträge** *(ab v2.4)*
+- Für wiederkehrende Fixkosten (Versicherung) – wie ein Dauerauftrag am Konto
+- **Monatlich** → wird am Fälligkeitstag automatisch gebucht
+- **Jährlich** → erscheint als **Entwurf „Betrag prüfen"**; die zahlende Seite bestätigt/korrigiert den Betrag laut Rechnung (wird für Folgejahre übernommen)
+- **Betrag ändern ab …** legt eine neue Preisstufe an (Historie bleibt sichtbar); bereits erzeugte, offene Buchungen ab dem Datum werden angepasst
+- **Erinnerung** einen Monat vor der jährlichen Anpassung (z. B. 1.10.), bis der neue Betrag eingetragen ist
+- Buchungen aus Daueraufträgen sind bearbeitbar, aber nicht löschbar (stattdessen Auftrag ändern/beenden)
+
+![Daueraufträge](docs/dauerauftrag.png)
+
 **Allgemein**
 - Als **App auf dem Home-Bildschirm** installierbar (eigenes Icon, kein Browser-Rahmen, kein Google-Banner)
 - **Hell- und Dunkelmodus** folgen der Systemeinstellung
@@ -80,11 +90,12 @@ Grundlage ist der Vertrag zur gemeinschaftlichen Nutzung (§3). Abgerechnet wird
 | Kategorie | Fahrzeug | Aufteilung |
 |---|---|---|
 | ⛽ Tanken | T5 | nach km zwischen zwei Volltankungen |
-| 🛡️ Versicherung, Vignette, Pickerl | beide | 50 : 50 |
+| 🛡️ Versicherung | beide | 50 : 50 – **nur über Daueraufträge** |
 | 🔧 Service / Reparatur | beide | 50 : 50 (pro Buchung änderbar) |
-| 🛞 Reifen, Schneeketten | beide | 50 : 50 |
 | 💥 Schaden | beide | 100 % Verursacher-Haushalt |
-| 📦 Sonstiges | beide | wählbar: 50 : 50 / nur PK / nur TM |
+| 📦 Sonstiges | beide | wählbar: je zur Hälfte / nur einer der Haushalte |
+
+Vignette, ÖAMTC u. Ä. zahlt jeder Haushalt selbst je zur Hälfte – sie werden nicht erfasst.
 | 🔌 Laden MG5 | MG5 | *derzeit nur Altdaten – künftig automatisch über Node-RED* |
 
 ### Tanken: Aufteilung nach km
@@ -196,6 +207,10 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | `addExpense` | `expense{ car, cat, amount, date, payer, split?, km?, liter?, full?, note? }` | Buchung anlegen |
 | `updateExpense` | `id`, `expense{…}` | Buchung ändern (nicht bei `abgerechnet`) |
 | `deleteExpense` | `id` | Buchung löschen (nur Status `offen`) |
+| `addOrder` | `order{ car, label, amount, interval, first, payer, adjust? }` | Dauerauftrag anlegen |
+| `changeOrderAmount` | `id`, `amount`, `from` | neue Preisstufe ab Datum |
+| `endOrder` | `id`, `until` | Dauerauftrag beenden |
+| `confirmDraft` | `id`, `amount` | jährlichen Entwurf bestätigen (nur zahlende Seite) |
 | `settle` | – | offenen Saldo abrechnen (nur zahlende Seite) |
 | `confirmSettlement` | `id` | Erhalt bestätigen (nur empfangende Seite) |
 | `cancelSettlement` | `id` | Abrechnung zurückziehen (nur zahlende Seite) |
@@ -224,11 +239,14 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | J | Liter |
 | K | Vollgetankt |
 | L | Notiz |
-| M | Status (`offen` / `in Abrechnung` / `abgerechnet`) |
+| M | Status (`Entwurf` / `offen` / `in Abrechnung` / `abgerechnet`) |
 | N–P | Erfasst von, Geändert von, Geändert am |
 | Q | Anteil erster Haushalt (berechnet, von der API geschrieben) |
 | R | Ausgleich (+ TM→PK / − PK→TM, von der API geschrieben) |
 | S | Abrechnungs-ID |
+| T | Dauerauftrag (`Auftrags-ID@Fälligkeit`) |
+
+**Tab `Daueraufträge`** (eine Zeile pro Preisstufe, gleiche ID = gleicher Auftrag): `ID | Fahrzeug | Kategorie | Bezeichnung | Betrag | Intervall | Fällig am Tag | Fällig im Monat | gültig ab | gültig bis | Bezahlt von | Aufteilung | Jährliche Anpassung am | Angelegt von`
 
 **Tab `Abrechnungen`**: `ID | Erstellt am | Erstellt von | Von (zahlt) | An (erhält) | Betrag | Anzahl Buchungen | Status | Erledigt am | Erledigt von`
 
@@ -269,7 +287,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 | Statistik-Seite | ⏳ |
 | Vertragsseite: Auflösung simulieren | ⏳ |
 
-**Phase 2:** Siri „Tankung eintragen" · ~~Abrechnung~~ ✅ v2.3 · Lücken-Seite · Fixkosten/Versicherung · MG5-Laden über Node-RED · Erinnerungen · Reservierungskalender · Belegfoto
+**Phase 2:** Siri „Tankung eintragen" · ~~Abrechnung~~ ✅ v2.3 · Lücken-Seite · ~~Fixkosten/Versicherung~~ ✅ v2.4 · MG5-Laden über Node-RED · Erinnerungen · Reservierungskalender · Belegfoto
 
 ---
 
@@ -277,6 +295,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.4** | Daueraufträge (Versicherung), Entwürfe für jährliche Beträge, Erinnerung vor Anpassung; Kategorien reduziert |
 | **2.3** | Abrechnen per Knopf, Bestätigung durch Empfänger, Tab „Abrechnungen" |
 | **2.2** | Ausgaben, Saldo, Tank-Aufteilung nach km, Migration der Altbuchungen |
 | **2.1** | Eigene Oberfläche auf GitHub Pages (ohne Google-Banner), Namensauswahl, Home-Bildschirm-App |
