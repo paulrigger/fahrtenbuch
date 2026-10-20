@@ -1,5 +1,5 @@
 /**
- * Fahrtenbuch API – v2.8 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
+ * Fahrtenbuch API – v2.9 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
  *
  * Bereitstellen als Web-App:  Ausführen als: Ich   |   Zugriff: Jeder
  * Einmalig: Funktion setup() ausführen -> API-Key steht im Log (Ausführungsprotokoll).
@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.8';
+const VERSION = '2.9';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -482,9 +482,23 @@ function writeComputed_() {
       fWX.push([kmFormula_(car, 'PK', r), kmFormula_(car, 'TM', r)]);
     } else { vUV.push(['', '']); fWX.push(['', '']); }
   }
-  sh.getRange(2, 17, fQR.length, 2).setFormulas(fQR);
-  sh.getRange(2, 21, vUV.length, 2).setValues(vUV);
-  sh.getRange(2, 23, fWX.length, 2).setFormulas(fWX);
+  // nur geänderte Zeilen schreiben (schneller, weniger Neuberechnung im Sheet)
+  const len = n - 1;
+  const curQR = sh.getRange(2, 17, len, 2).getFormulas();
+  const curUV = sh.getRange(2, 21, len, 2).getValues();
+  const curWX = sh.getRange(2, 23, len, 2).getFormulas();
+  let lo = -1, hi = -1;
+  for (let i = 0; i < len; i++) {
+    const same = curQR[i][0] === fQR[i][0] && curQR[i][1] === fQR[i][1] &&
+                 String(curUV[i][0]) === String(vUV[i][0]) && String(curUV[i][1]) === String(vUV[i][1]) &&
+                 curWX[i][0] === fWX[i][0] && curWX[i][1] === fWX[i][1];
+    if (!same) { if (lo < 0) lo = i; hi = i; }
+  }
+  if (lo < 0) return;
+  const k = hi - lo + 1;
+  sh.getRange(2 + lo, 17, k, 2).setFormulas(fQR.slice(lo, hi + 1));
+  sh.getRange(2 + lo, 21, k, 2).setValues(vUV.slice(lo, hi + 1));
+  sh.getRange(2 + lo, 23, k, 2).setFormulas(fWX.slice(lo, hi + 1));
 }
 
 /** km eines Haushalts im Fenster [U,V] aus dem Fahrtenbuch des Autos (Fahrten anteilig, wie kmSplit_) */

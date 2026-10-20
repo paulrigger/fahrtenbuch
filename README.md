@@ -341,6 +341,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.9** | Schnellerer Start: letzter Stand sofort aus dem Gerätespeicher, Aktualisierung im Hintergrund; API schreibt nur geänderte Zeilen |
 | **2.8** | Aufteilung im Sheet als nachvollziehbare Formeln (Spalten Q, R, W, X) statt fixer Werte |
 | **2.7** | Fahrtenbuch-Seite mit Lücken/Korrekturen, eigene Aufteilung bei Ausgaben, Fälligkeitstag bei Daueraufträgen, Menü unter „Sonstiges“ |
 | **2.6** | Reiter „Sonstiges“: Auflösung nach Vertrag §5 simulieren, Strompreis pflegen, Ladekosten über Node-RED (`charging`), Links zu Sheet und Vertrag |

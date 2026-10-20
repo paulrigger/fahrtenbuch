@@ -639,14 +639,14 @@ var QS = new URLSearchParams(location.search);
 var KEY = QS.get('k') || sget('fb-key') || '';
 if (QS.get('k')) sset('fb-key', QS.get('k'));
 var ME = sget('fb-driver') || '';
-var APP_VERSION = '2.8';
+var APP_VERSION = '2.9';
 var DEMO = QS.has('demo') || API_URL.indexOf('HIER_') >= 0;
 
 /* ---------- API ---------- */
 function apiGet() {
   if (DEMO) return mock({ action: 'all' });
-  return fetch(API_URL + '?action=all&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
-    .then(function (r) { return r.json(); }).then(unwrap);
+  return cached('all', fetch(API_URL + '?action=all&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap));
 }
 function apiPost(body) {
   body.key = KEY; body.driver = ME;
@@ -655,10 +655,14 @@ function apiPost(body) {
   return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
     .then(function (r) { return r.json(); }).then(unwrap);
 }
+/* Lokaler Zwischenspeicher: App zeigt sofort den letzten Stand, aktualisiert im Hintergrund */
+function cget(k) { if (DEMO) return null; try { if (sget('fb-c-key') !== KEY) return null; var v = localStorage.getItem('fb-c-' + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
+function cput(k, d) { if (DEMO) return d; try { sset('fb-c-key', KEY); localStorage.setItem('fb-c-' + k, JSON.stringify(d)); } catch (e) {} return d; }
+function cached(k, p) { return p.then(function (d) { return cput(k, d); }); }
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.8 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.9 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -1026,8 +1030,8 @@ function showView(v) {
 var STATS = null, ST_RANGE = sget('fb-st-range') || '12m', ST_CAR = sget('fb-st-car') || 'all';
 function apiGetStats() {
   if (DEMO) return mock({ action: 'stats' });
-  return fetch(API_URL + '?action=stats&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
-    .then(function (r) { return r.json(); }).then(unwrap);
+  return cached('stats', fetch(API_URL + '?action=stats&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap));
 }
 function loadStats() {
   if (!KEY && !DEMO) return;
@@ -1197,8 +1201,8 @@ window.addEventListener('resize', function () { if (VIEW === 'stats' && STATS) r
 var MISC = null;
 function apiGetMisc() {
   if (DEMO) return mock({ action: 'misc' });
-  return fetch(API_URL + '?action=misc&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
-    .then(function (r) { return r.json(); }).then(unwrap);
+  return cached('misc', fetch(API_URL + '?action=misc&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap));
 }
 function loadMisc() {
   if (!KEY && !DEMO) return;
@@ -1410,8 +1414,8 @@ function savePrice() {
 var TB = { car: sget('fb-tb-car') || 'Schwitzkarre', filter: 'all', show: 60, data: {} };
 function apiGetTrips(sheet) {
   if (DEMO) return mock({ action: 'trips', sheet: sheet });
-  return fetch(API_URL + '?action=trips&sheet=' + encodeURIComponent(sheet) + '&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
-    .then(function (r) { return r.json(); }).then(unwrap);
+  return cached('trips-' + sheet, fetch(API_URL + '?action=trips&sheet=' + encodeURIComponent(sheet) + '&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap));
 }
 function loadTrips() {
   var car = TB.car;
@@ -1583,8 +1587,8 @@ function todayISO() { var d = new Date(); return d.getFullYear() + '-' + ('0' + 
 
 function apiGetExp() {
   if (DEMO) return mock({ action: 'expenses' });
-  return fetch(API_URL + '?action=expenses&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
-    .then(function (r) { return r.json(); }).then(unwrap);
+  return cached('exp', fetch(API_URL + '?action=expenses&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
+    .then(function (r) { return r.json(); }).then(unwrap));
 }
 function loadExp() {
   if (!KEY && !DEMO) return;
@@ -1952,6 +1956,15 @@ function hideNews() { $('news').hidden = true; sset(NEWS_KEY, '1'); }
 if (!sget(NEWS_KEY)) $('news').hidden = false;
 
 renderMe();
+(function hydrate() {   // letzter bekannter Stand sofort anzeigen
+  var c;
+  if ((c = cget('all'))) { STATE = c; try { render(); } catch (e) {} }
+  if ((c = cget('exp'))) { EXP = c; try { renderExp(); } catch (e) {} }
+  if ((c = cget('stats'))) STATS = c;
+  if ((c = cget('misc'))) MISC = c;
+  ['Schwitzkarre', 'Julia Brettner'].forEach(function (car) { if ((c = cget('trips-' + car))) TB.data[car] = c; });
+  try { updateTripBadges(); } catch (e) {}
+})();
 load();
 loadExp();   // auch im Fahrten-Tab, damit die rote Zahl stimmt
 setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } }, 60000);
