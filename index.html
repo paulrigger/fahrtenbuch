@@ -174,9 +174,9 @@
   /* Bottom-Sheet Dialog */
   .backdrop { position: fixed; inset: 0; background: rgba(23,86,118,.7); opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 10; }
   .backdrop.show { opacity: 1; pointer-events: auto; }
-  .dialog { position: fixed; left: 0; right: 0; bottom: 0; margin: 0 auto; max-width: 520px; background: linear-gradient(var(--card), var(--card)), var(--sheet-bg); border-top: 1px solid var(--line);
+  .dialog { position: fixed; left: 0; right: 0; bottom: var(--kb, 0px); margin: 0 auto; max-height: calc(var(--vvh, 100vh) - 8px); overflow-y: auto; -webkit-overflow-scrolling: touch; max-width: 520px; background: linear-gradient(var(--card), var(--card)), var(--sheet-bg); border-top: 1px solid var(--line);
             border-radius: var(--r-sheet) var(--r-sheet) 0 0; padding: 10px 20px max(20px, env(safe-area-inset-bottom));
-            transform: translateY(105%); transition: transform .25s cubic-bezier(.2,.8,.2,1); z-index: 11; }
+            transform: translateY(105%); transition: transform .25s cubic-bezier(.2,.8,.2,1), bottom .12s ease-out; z-index: 11; }
   .dialog.show { transform: none; }
   .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto 14px; }
   .dialog h3 { margin: 0 0 4px; font-size: 20px; }
@@ -407,7 +407,7 @@
   .empty { text-align: center; color: var(--muted); padding: 24px; font-size: 15px; }
 
   /* ---------- Formular ---------- */
-  .dialog.tall { max-height: 92vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .dialog.tall { max-height: min(92vh, calc(var(--vvh, 100vh) - 8px)); overflow-y: auto; -webkit-overflow-scrolling: touch; }
   .fgroup { margin-top: 14px; }
   .seg { display: flex; gap: 4px; padding: 4px; border-radius: var(--r-md); background: var(--raised); }
   .seg button { flex: 1; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 15px; font-weight: 600;
@@ -2013,6 +2013,24 @@ function toast(t, isErr, icon) {
 }
 function hideNews() { $('news').hidden = true; sset(NEWS_KEY, '1'); }
 if (!sget(NEWS_KEY)) $('news').hidden = false;
+
+/* iOS: Bildschirmtastatur überdeckt fixierte Bottom-Sheets -> Dialoge über die Tastatur schieben */
+(function keyboardAware() {
+  var vv = window.visualViewport, root = document.documentElement;
+  if (!vv) return;
+  function upd() {
+    var kb = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    root.style.setProperty('--kb', (kb > 60 ? kb : 0) + 'px');
+    root.style.setProperty('--vvh', vv.height + 'px');
+  }
+  vv.addEventListener('resize', upd); vv.addEventListener('scroll', upd); upd();
+  document.addEventListener('focusin', function (e) {
+    var t = e.target;
+    if (t && /INPUT|TEXTAREA|SELECT/.test(t.tagName) && t.closest && t.closest('.dialog')) {
+      setTimeout(function () { upd(); t.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 320);
+    }
+  });
+})();
 
 renderMe();
 (function hydrate() {   // letzter bekannter Stand sofort anzeigen
