@@ -1,5 +1,5 @@
 /**
- * Fahrtenbuch API – v2.12 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
+ * Fahrtenbuch API – v2.13 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
  *
  * Bereitstellen als Web-App:  Ausführen als: Ich   |   Zugriff: Jeder
  * Einmalig: Funktion setup() ausführen -> API-Key steht im Log (Ausführungsprotokoll).
@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.12';
+const VERSION = '2.13';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -155,6 +155,7 @@ function getStatus(sheetName) {
         if (r[0] === 'Aktuelle Reichweite')   { res.range = Number(r[1]); }
       });
     }
+    try { const pw = readPower_(); if (pw) res.charging = { kw: pw.kw, ageMin: pw.ageMin }; } catch (e) {}
   }
   return res;
 }
@@ -1189,7 +1190,7 @@ function chargingAction_(d, by) {
 // Monatsletzten den aktuellen Zählerstand, bucht kWh × Preis als "Laden" (nach km im Monat). Verpasst der Trigger
 // den Stichtag, holt der nächste Aufruf (App oder Trigger) das nach – mit Hinweis "verspätet abgelesen".
 
-const WB_SHEET = 'Wallbox-Data', WB_KEY = 'Zählerstand kWh';
+const WB_SHEET = 'Wallbox-Data', WB_KEY = 'Zählerstand kWh', WB_POWER = 'Ladeleistung kW';
 const MLOG_SHEET = 'Zählerstände';
 const MLOG_HEAD = ['Stichtag', 'Zählerstand kWh', 'abgelesen am', 'Quelle', 'kWh', 'ct/kWh', 'Betrag', 'Buchung', 'Hinweis'];
 
@@ -1204,7 +1205,7 @@ function wbSheet_() {
   let sh = ss_().getSheetByName(WB_SHEET);
   if (!sh) {
     sh = ss_().insertSheet(WB_SHEET);
-    sh.getRange(1, 1, 2, 4).setValues([['Name', 'Wert', 'aktualisiert am', 'Quelle'], [WB_KEY, '', '', '']]);
+    sh.getRange(1, 1, 3, 4).setValues([['Name', 'Wert', 'aktualisiert am', 'Quelle'], [WB_KEY, '', '', ''], [WB_POWER, '', '', '']]);
     sh.getRange(1, 1, 1, 4).setFontWeight('bold');
   }
   return sh;
@@ -1218,6 +1219,19 @@ function readMeterCur_() {
     if (String(rows[i][0]).trim() === WB_KEY) {
       const kwh = num_(rows[i][1]);
       return kwh == null ? { row: i + 2 } : { kwh: kwh, at: parseStamp_(rows[i][2]), src: String(rows[i][3] || 'Node-RED'), row: i + 2 };
+    }
+  }
+  return null;
+}
+/** aktuelle Ladeleistung { kw, at:Date, ageMin } aus Zeile "Ladeleistung kW" oder null */
+function readPower_() {
+  const sh = ss_().getSheetByName(WB_SHEET);
+  if (!sh || sh.getLastRow() < 2) return null;
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, 3).getValues();
+  for (let i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === WB_POWER) {
+      const kw = num_(rows[i][1]), at = parseStamp_(rows[i][2]);
+      return kw == null ? null : { kw: kw, at: at, ageMin: at ? Math.round((new Date() - at) / 60000) : null };
     }
   }
   return null;
@@ -1303,7 +1317,9 @@ function meterView_() {
   if (last && /prüfen/.test(last.note)) problems.push(last.note);
   if (cur && cur.at && (now - cur.at) > 48 * 3600e3) problems.push('Zählerstand seit ' + fmtStamp_(cur.at) + ' nicht aktualisiert – Node-RED prüfen');
   if (!log.length) problems.push('Kein Startwert im Tab „Zählerstände“');
+  const pw = readPower_();
   return {
+    power: pw ? { kw: pw.kw, at: fmtStamp_(pw.at), ageMin: pw.ageMin } : null,
     cur: cur && cur.kwh != null ? { kwh: cur.kwh, at: fmtStamp_(cur.at), src: cur.src, ageH: cur.at ? Math.round((now - cur.at) / 36e5) : null } : null,
     log: log.slice(-24).reverse(), since: since, problem: problems.join(' · ') || null
   };

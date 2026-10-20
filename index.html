@@ -140,6 +140,9 @@
   .pill.home i { background: var(--turquoise-surf); }
   .pill.busy i { background: var(--classic-crimson); }
   .pill.busy i { animation: pulse 1.4s ease-in-out infinite; }
+  .infoline .ic, .battery-meta .ic { width: 14px; height: 14px; vertical-align: -2px; color: var(--cat-3); }
+  .pill.charge { color: var(--ink); background: var(--raised); }
+  .pill.charge i { background: var(--cat-3); animation: pulse 1.4s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: .25; } }
 
   .odo { display: flex; align-items: baseline; justify-content: space-between; padding: 0 16px 12px; gap: 12px; }
@@ -642,7 +645,7 @@ var QS = new URLSearchParams(location.search);
 var KEY = QS.get('k') || sget('fb-key') || '';
 if (QS.get('k')) sset('fb-key', QS.get('k'));
 var ME = sget('fb-driver') || '';
-var APP_VERSION = '2.12';
+var APP_VERSION = '2.13';
 var DEMO = QS.has('demo') || API_URL.indexOf('HIER_') >= 0;
 
 /* ---------- API ---------- */
@@ -669,9 +672,9 @@ function netErr() {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.12 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.13 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
-  { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
+  { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00', charging: { kw: 7.2, ageMin: 3 } },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
 ]};
 function mock(b) {
@@ -746,7 +749,7 @@ function mockTrips(b) {
   return { ok: true, sheet: b.sheet, rows: JSON.parse(JSON.stringify(rows)), drivers: MOCK.drivers, households: hh };
 }
 
-var MOCK_METER = { cur: { kwh: 4123.4, at: '20.10.2026 12:15', src: 'Node-RED', ageH: 0 },
+var MOCK_METER = { power: { kw: 7.2, at: '20.10.2026 12:15', ageMin: 3 }, cur: { kwh: 4123.4, at: '20.10.2026 12:15', src: 'Node-RED', ageH: 0 },
   since: { from: '2026-09-30', kwh: 123.873, ct: 18.3, est: 22.67 }, problem: null,
   log: [{ day: '2026-09-30', kwhAbs: 3999.527, kwh: 1202.897, ct: 18.3, amount: 220.13, note: 'Startwert' },
         { day: '2026-08-31', kwhAbs: 2796.63, kwh: 312.4, ct: 18.3, amount: 57.17, note: '' }] };
@@ -873,6 +876,9 @@ var P = {
 function ic(name, cls) {
   return '<svg class="' + (cls || 'ic') + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[name] + '</svg>';
 }
+/* Ladeleistung der Wallbox (aus Wallbox-Data), nur wenn aktuell (≤ 20 min) und > 0,3 kW */
+function chargingKw(c) { var g = c.charging; return g && g.kw >= 0.3 && (g.ageMin == null || g.ageMin <= 20) ? g.kw : 0; }
+function fmtKw(kw) { return Number(kw).toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' kW'; }
 function batIcon(soc) {
   var w = Math.max(1, Math.min(16, 16 * soc / 100)), col = soc < 25 ? 'var(--busy)' : 'var(--energy)';
   return '<svg class="bat" viewBox="0 0 26 14" aria-hidden="true"><rect x="1" y="1" width="21" height="12" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/>'
@@ -926,6 +932,7 @@ function render() {
   $('cars').innerHTML = STATE.cars.map(function (c, i) {
     var pill = c.open
       ? '<span class="pill busy"><i></i>Unterwegs</span>'
+      : chargingKw(c) ? '<span class="pill charge"><i></i>Lädt · ' + fmtKw(chargingKw(c)) + '</span>'
       : '<span class="pill home"><i></i>Zuhause</span>';
     var last = c.open
       ? 'seit ' + esc(c.date) + '<br><b>' + esc(c.driver) + '</b> fährt'
@@ -934,7 +941,7 @@ function render() {
     if (c.soc != null && !isNaN(c.soc)) {
       bat = '<div class="battery"><div class="bar"><div class="' + (c.soc < 25 ? 'low' : '') + '" style="width:' + Math.max(2, Math.min(100, c.soc)) + '%"></div></div>'
           + '<div class="battery-meta"><span>' + batIcon(c.soc) + ' <b>' + fmt(Math.round(c.soc)) + ' %</b> · ' + fmt(c.range) + ' km Reichweite</span>'
-          + '<span>' + esc((c.socUpdated || '').split(',')[0]) + '</span></div></div>';
+          + '<span>' + (chargingKw(c) ? ic('zap') + ' <b>' + fmtKw(chargingKw(c)) + '</b>' : esc((c.socUpdated || '').split(',')[0])) + '</span></div></div>';
     }
     var actions = c.open
       ? '<div class="actions single"><button class="btn stop" onclick="openDialog(' + i + ',\'end\')">' + ic('flag') + 'Fahrt beenden</button></div>'
@@ -1354,7 +1361,8 @@ function meterHTML() {
   if (m.problem) h += '<div class="msg err" style="display:block;margin-top:8px">' + ic('alert') + ' ' + esc(m.problem) + '</div>';
   if (m.cur) {
     h += '<div class="bigval">' + fmtKwh(m.cur.kwh) + '<small>kWh</small></div>'
-      + '<div class="infoline">Stand <b>' + esc(m.cur.at || '–') + '</b> · ' + esc(m.cur.src || '') + '</div>';
+      + '<div class="infoline">Stand <b>' + esc(m.cur.at || '–') + '</b> · ' + esc(m.cur.src || '') + '</div>'
+      + (m.power ? '<div class="infoline">' + ic('zap') + ' Ladeleistung <b>' + (m.power.kw >= 0.3 && (m.power.ageMin == null || m.power.ageMin <= 20) ? fmtKw(m.power.kw) + '</b> – lädt gerade' : '0 kW</b> – lädt nicht') + ' <span class="muted">(' + esc(m.power.at) + ')</span></div>' : '');
   } else {
     h += '<div class="infoline" style="margin-top:8px">Noch kein aktueller Zählerstand. Node-RED schreibt ihn laufend ins Sheet (Tab „Wallbox-Data“) – oder unten von Hand eintragen.</div>';
   }

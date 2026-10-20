@@ -295,7 +295,7 @@ Apps Script antwortet auf POST mit einer Weiterleitung – im HTTP-Request-Node 
 
 **Tab `Strompreise`**: `gültig ab | ct/kWh | eingetragen von | eingetragen am`
 
-**Tab `Wallbox-Data`** (schreibt Node-RED laufend, wie `MG5-Data`): Zeile `Zählerstand kWh | <Wert> | <aktualisiert am, TT.MM.JJJJ, hh:mm:ss> | <Quelle>`
+**Tab `Wallbox-Data`** (schreibt Node-RED laufend, wie `MG5-Data`): Zeile 2 `Zählerstand kWh | <Wert> | <aktualisiert am, TT.MM.JJJJ, hh:mm:ss> | <Quelle>`, Zeile 3 `Ladeleistung kW | …`. Quelle: Shelly 3EM in der Wallbox-Zuleitung (Summe der 3 Phasen), Node-RED schreibt bei Änderung, spätestens alle 15 min.
 
 **Tab `Zählerstände`** (führt die API): `Stichtag | Zählerstand kWh | abgelesen am | Quelle | kWh | ct/kWh | Betrag | Buchung | Hinweis`. Stichtag = Monatsletzter. Trigger `dailyJob` (einmal `installTriggers()` im Editor ausführen) bucht am Monatsletzten 23–24 Uhr kWh × Preis als „Laden“; verpasste Stichtage werden ab dem 2. nachgeholt (Hinweis „verspätet“/„veraltet“). Zählerstand kleiner als zuvor → keine Buchung, rotes Rufzeichen.
 
@@ -346,6 +346,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.13** | Ladeleistung der Wallbox: „Lädt · x kW“ auf der Schwitzkarre-Karte und in Sonstiges → Ladestation |
 | **2.12** | Statistik „Gesamt“ robust gegen Tippfehler im Datum; unplausible Daten als Problem im Fahrtenbuch |
 | **2.11** | Wallbox-Zähler: Abrechnung am Monatsletzten aus `Wallbox-Data`, Tab `Zählerstände`, Anzeige und Handeingabe in der App |
 | **2.10** | Formeln im Sheet mit Semikolon (deutsches Gebietsschema); verständliche Meldung bei Netzwerkfehlern |
