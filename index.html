@@ -39,7 +39,7 @@
     --energy: var(--turquoise-surf);
     --bolt: var(--pale-sky);
     --warn-bg: rgba(186,50,79,.45);  --warn-ink: #ffffff;
-    --err-bg: rgba(214,40,57,.5);    --err-ink: #ffffff;
+    --err-bg: rgba(214,40,57,.5);    --err-ink: #ffffff; --alert-ink: #ff8a80;
     --shadow: none;
     --page: radial-gradient(120% 60% at 100% 0%, rgba(75,163,195,.35), transparent 60%), var(--baltic-blue);
     --sheet-bg: var(--baltic-blue);
@@ -65,7 +65,7 @@
       --energy: var(--turquoise-surf);
       --bolt-bg: var(--baltic-blue); --bolt-ink: #ffffff;
       --warn-bg: rgba(186,50,79,.10); --warn-ink: var(--rosewood);
-      --err-bg: rgba(214,40,57,.12);  --err-ink: var(--classic-crimson);
+      --err-bg: rgba(214,40,57,.12);  --err-ink: var(--classic-crimson); --alert-ink: var(--classic-crimson);
       --shadow: 0 1px 2px rgba(23,86,118,.08), 0 8px 24px rgba(23,86,118,.10);
       color-scheme: light;
     }
@@ -322,6 +322,10 @@
   .tgap .ic { width: 18px; height: 18px; flex: none; margin-top: 1px; }
   .tgap small { display: block; font-size: 12.5px; opacity: .85; }
   .tgap .btn { flex: none; padding: 8px 12px; font-size: 14px; }
+  .xbadge { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #ff3b30; color: #fff;
+            font-style: normal; font-size: 12px; font-weight: 800; margin-left: 6px; vertical-align: 1px; flex: none; }
+  .lrow.alert small { color: var(--alert-ink); font-weight: 600; }
+  .seg button.probbtn:not(.on) { color: var(--alert-ink); }
   .fixbox { margin-top: 10px; padding: 12px 14px; border-radius: 14px; background: var(--raised); }
   .fixlbl { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
   .fixlbl b { color: var(--ink); font-variant-numeric: tabular-nums; }
@@ -490,7 +494,7 @@
   <button id="tab-trips" class="on" onclick="showView('trips')"><span data-i="car"></span>Fahrten</button>
   <button id="tab-exp" onclick="showView('exp')"><span class="tab-ic"><span data-i="receipt"></span><span class="nbadge" id="exp-badge" hidden></span></span>Ausgaben</button>
   <button id="tab-stats" onclick="showView('stats')"><span data-i="chart"></span>Statistik</button>
-  <button id="tab-misc" onclick="showView('misc')"><span data-i="dots"></span>Sonstiges</button>
+  <button id="tab-misc" onclick="showView('misc')"><span class="tab-ic"><span data-i="dots"></span><span class="nbadge" id="misc-badge" hidden>!</span></span>Sonstiges</button>
 </nav>
 
 <div class="backdrop" id="backdrop" onclick="closeDialog(); closePicker(); closeExp(); closeOrd(); closeTrip()"></div>
@@ -1303,8 +1307,12 @@ var MISC_PAGES = [
   ['m-links', 'link',  'Links', function () { return 'Google Sheet' + (MISC.contractUrl ? ', Vertrag' : ''); }]
 ];
 function renderMiscMenu() {
+  if (!MISC) return;
+  var tp = tripProblemText();
   $('m-menu').innerHTML = MISC_PAGES.filter(function (pg) { return pg[0] !== 'm-siri' || (MISC.shortcuts || []).length; }).map(function (pg) {
-    return '<a class="lrow" href="javascript:void(0)" onclick="miscOpen(\'' + pg[0] + '\')">' + ic(pg[1]) + '<span>' + pg[2] + '<small>' + esc(pg[3]()) + '</small></span>' + ic('chevron') + '</a>';
+    var alert = pg[0] === 'm-trips' && tp;
+    return '<a class="lrow' + (alert ? ' alert' : '') + '" href="javascript:void(0)" onclick="miscOpen(\'' + pg[0] + '\')">' + ic(pg[1]) + '<span>' + pg[2]
+      + '<small>' + (alert ? esc(tp) : esc(pg[3]())) + '</small></span>' + (alert ? '<i class="xbadge">!</i>' : '') + ic('chevron') + '</a>';
   }).join('');
 }
 function miscOpen(id) {
@@ -1312,7 +1320,10 @@ function miscOpen(id) {
   $('m-menu').hidden = !!id; $('m-menu').style.display = id ? 'none' : '';
   $('m-back').hidden = !id;
   MISC_PAGES.forEach(function (pg) { $(pg[0]).hidden = pg[0] !== id; });
-  if (id === 'm-trips') { renderTrips(); loadTrips(); }
+  if (id === 'm-trips') {
+    if (!tripProbCount(TB.car)) { var pc = ['Schwitzkarre', 'Julia Brettner'].filter(tripProbCount)[0]; if (pc) TB.car = pc; }
+    renderTrips(); loadTrips();
+  }
   window.scrollTo(0, 0);
 }
 function fmtNum(n) { return n == null ? '' : Number(n).toLocaleString('de-AT', { maximumFractionDigits: 2 }); }
@@ -1402,12 +1413,32 @@ function apiGetTrips(sheet) {
 function loadTrips() {
   var car = TB.car;
   if (!TB.data[car]) renderTrips();
-  apiGetTrips(car).then(function (d) { TB.data[car] = d; renderTrips(); })
+  apiGetTrips(car).then(function (d) { TB.data[car] = d; renderTrips(); updateTripBadges(); })
     .catch(function (e) {
       var m = e.message || String(e);
       if (/Unbekannte Aktion/.test(m)) $('tb-body').innerHTML = '<div class="msg warn" style="display:block">Diese Seite braucht die API ab Version ' + APP_VERSION + '. Code.gs im Projekt „Fahrtenbuch API“ ersetzen und eine neue Version bereitstellen.</div>';
       else toast(m, true);
     });
+}
+function tripProbCount(car) {
+  var d = TB.data[car]; if (!d) return 0;
+  var i = tripIssues(d.rows); return i.gaps.length + i.overlaps.length + i.unknown;
+}
+function tripProblemText() {
+  var parts = ['Schwitzkarre', 'Julia Brettner'].filter(tripProbCount).map(function (c) { return c + ' (' + tripProbCount(c) + ')'; });
+  return parts.length ? 'Bitte prüfen: ' + parts.join(', ') : '';
+}
+/* Hintergrund-Check beider Fahrtenbücher -> rote Rufzeichen (Tab, Menü, Auto, Probleme) */
+function checkTrips() {
+  if (!KEY && !DEMO) return;
+  ['Schwitzkarre', 'Julia Brettner'].forEach(function (car) {
+    apiGetTrips(car).then(function (d) { TB.data[car] = d; updateTripBadges(); }).catch(function () {});
+  });
+}
+function updateTripBadges() {
+  var n = tripProbCount('Schwitzkarre') + tripProbCount('Julia Brettner');
+  $('misc-badge').hidden = !n;
+  if (VIEW === 'misc') { if (MSUB === 'm-trips') renderTrips(); else renderMiscMenu(); }
 }
 function tbCar(c) { TB.car = c; TB.show = 60; sset('fb-tb-car', c); renderTrips(); loadTrips(); }
 function tbFilter(f) { TB.filter = f; renderTrips(); }
@@ -1440,12 +1471,12 @@ function renderTrips() {
   var segs = [['Schwitzkarre', 'Schwitzkarre'], ['Julia Brettner', 'Julia Brettner']];
   var h = '<h4>' + ic('list') + 'Fahrtenbuch</h4><div class="sub">Einträge ansehen und korrigieren – antippen zum Bearbeiten.</div>'
     + '<div class="seg" style="margin-top:10px">' + segs.map(function (s) {
-        return '<button type="button" class="' + (s[0] === TB.car ? 'on' : '') + '" onclick="tbCar(\'' + s[0] + '\')">' + s[1] + '</button>'; }).join('') + '</div>';
+        return '<button type="button" class="' + (s[0] === TB.car ? 'on' : '') + '" onclick="tbCar(\'' + s[0] + '\')">' + s[1] + (tripProbCount(s[0]) ? '<i class="xbadge">!</i>' : '') + '</button>'; }).join('') + '</div>';
   var d = TB.data[TB.car];
   if (!d) { $('m-trips').innerHTML = h + '<div id="tb-body"><div class="skeleton" style="height:240px;margin-top:12px"></div></div>'; return; }
   var rows = d.rows, iss = tripIssues(rows), nProb = iss.gaps.length + iss.overlaps.length + iss.unknown;
   h += '<div class="seg" style="margin-top:8px"><button type="button" class="' + (TB.filter === 'all' ? 'on' : '') + '" onclick="tbFilter(\'all\')">Alle (' + rows.length + ')</button>'
-    + '<button type="button" class="' + (TB.filter === 'prob' ? 'on' : '') + '" onclick="tbFilter(\'prob\')">Probleme (' + nProb + ')</button></div>';
+    + '<button type="button" class="' + (TB.filter === 'prob' ? 'on' : '') + (nProb ? ' probbtn' : '') + '" onclick="tbFilter(\'prob\')">Probleme (' + nProb + ')' + (nProb ? '<i class="xbadge">!</i>' : '') + '</button></div>';
   h += '<div class="tbsum">' + (nProb ? [
       iss.gaps.length ? '<span class="bad">' + iss.gaps.length + ' Lücke' + (iss.gaps.length > 1 ? 'n' : '') + ' · ' + fmt(iss.gapKm) + ' km</span>' : '',
       iss.overlaps.length ? '<span class="bad">' + iss.overlaps.length + ' Überschneidung' + (iss.overlaps.length > 1 ? 'en' : '') + '</span>' : '',
@@ -1507,7 +1538,7 @@ function renderTF() {
 }
 function closeTrip() { $('tdlg').classList.remove('show'); if (!DLG && !XF && !$('picker').classList.contains('show')) $('backdrop').classList.remove('show'); TF = null; }
 function tripDone(d, msg) {
-  TB.data[TB.car] = d; closeTrip(); renderTrips(); toast(msg, false, 'check');
+  TB.data[TB.car] = d; closeTrip(); renderTrips(); updateTripBadges(); toast(msg, false, 'check');
   if (d.cars) { STATE.cars = d.cars; try { render(); } catch (e) {} }
 }
 function saveTrip() {
@@ -1914,7 +1945,9 @@ if (!sget(NEWS_KEY)) $('news').hidden = false;
 renderMe();
 load();
 loadExp();   // auch im Fahrten-Tab, damit die rote Zahl stimmt
-setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } }, 60000);   // alle 60 s still aktualisieren
+setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } }, 60000);
+setInterval(function () { if (!document.hidden && !TF) checkTrips(); }, 300000);   // Fahrtenbuch-Probleme alle 5 min
+checkTrips();   // alle 60 s still aktualisieren
 document.addEventListener('visibilitychange', function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } });
 if (['exp', 'stats', 'misc'].indexOf(sget('fb-view')) >= 0) showView(sget('fb-view'));
 </script>
