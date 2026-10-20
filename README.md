@@ -238,6 +238,7 @@ Jeder Aufruf enthält `key` und `driver` (Name aus `drivers`).
 | `tripInsert` | `sheet`, `afterRow`, `expect`, `date`, `start`, `end`, `who` | Fahrt einfügen, z. B. Lücke füllen |
 | `tripDelete` | `sheet`, `row`, `expect` | Fahrt löschen |
 | `changeOrderDay` | `id`, `day` (1–31) | Fälligkeitstag eines Dauerauftrags ändern (max. eine Buchung je Monat) |
+| `setMeter` | `kwh`, `at?` | Zählerstand der Wallbox von Hand setzen (Fallback zu Node-RED) |
 | `setPrice` | `ct`, `from` | Strompreis ab Datum (gleiches Datum = überschreiben) |
 | `charging` | `month` (`JJJJ-MM`), `kwh`, `source?` | Monatsverbrauch der Ladestation buchen – **ohne `driver`** (für Node-RED). Erneuter Aufruf für denselben Monat aktualisiert die Buchung, solange sie nicht abgerechnet ist |
 
@@ -294,6 +295,10 @@ Apps Script antwortet auf POST mit einer Weiterleitung – im HTTP-Request-Node 
 
 **Tab `Strompreise`**: `gültig ab | ct/kWh | eingetragen von | eingetragen am`
 
+**Tab `Wallbox-Data`** (schreibt Node-RED laufend, wie `MG5-Data`): Zeile `Zählerstand kWh | <Wert> | <aktualisiert am, TT.MM.JJJJ, hh:mm:ss> | <Quelle>`
+
+**Tab `Zählerstände`** (führt die API): `Stichtag | Zählerstand kWh | abgelesen am | Quelle | kWh | ct/kWh | Betrag | Buchung | Hinweis`. Stichtag = Monatsletzter. Trigger `dailyJob` (einmal `installTriggers()` im Editor ausführen) bucht am Monatsletzten 23–24 Uhr kWh × Preis als „Laden“; verpasste Stichtage werden ab dem 2. nachgeholt (Hinweis „verspätet“/„veraltet“). Zählerstand kleiner als zuvor → keine Buchung, rotes Rufzeichen.
+
 **Tab `Abrechnungen`**: `ID | Erstellt am | Erstellt von | Von (zahlt) | An (erhält) | Betrag | Anzahl Buchungen | Status | Erledigt am | Erledigt von`
 
 ---
@@ -341,6 +346,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.11** | Wallbox-Zähler: Abrechnung am Monatsletzten aus `Wallbox-Data`, Tab `Zählerstände`, Anzeige und Handeingabe in der App |
 | **2.10** | Formeln im Sheet mit Semikolon (deutsches Gebietsschema); verständliche Meldung bei Netzwerkfehlern |
 | **2.9** | Schnellerer Start: letzter Stand sofort aus dem Gerätespeicher, Aktualisierung im Hintergrund; API schreibt nur geänderte Zeilen |
 | **2.8** | Aufteilung im Sheet als nachvollziehbare Formeln (Spalten Q, R, W, X) statt fixer Werte |

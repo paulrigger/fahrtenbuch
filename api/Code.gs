@@ -1,5 +1,5 @@
 /**
- * Fahrtenbuch API – v2.10 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
+ * Fahrtenbuch API – v2.11 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
  *
  * Bereitstellen als Web-App:  Ausführen als: Ich   |   Zugriff: Jeder
  * Einmalig: Funktion setup() ausführen -> API-Key steht im Log (Ausführungsprotokoll).
@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.10';
+const VERSION = '2.11';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -66,7 +66,7 @@ function doGet(e) {
     if (action === 'all') return all_();
     if (action === 'expenses') { ensureRecurring_(); return expensesResponse_(); }
     if (action === 'stats') return statsResponse_();
-    if (action === 'misc') return miscResponse_();
+    if (action === 'misc') { try { ensureMeter_(new Date(), false); } catch (e) {} return miscResponse_(); }
     if (action === 'trips') return tripsResponse_(p.sheet);
     throw new Error('Unbekannte Aktion: ' + action);
   });
@@ -86,6 +86,7 @@ function doPost(e) {
       return chargingAction_(d, d.driver ? checkDriver_(d.driver) : String(d.source || 'Node-RED').slice(0, 30));
     }
     if (d.action === 'setPrice') return priceAction_(d, checkDriver_(d.driver));
+    if (d.action === 'setMeter') return meterAction_(d, checkDriver_(d.driver));
     if (['tripEdit', 'tripInsert', 'tripDelete'].indexOf(d.action) >= 0) return tripAction_(d.action, d, checkDriver_(d.driver));
     if (['settle', 'confirmSettlement', 'cancelSettlement'].indexOf(d.action) >= 0) {
       return settlementAction_(d.action, d, checkDriver_(d.driver));
@@ -1121,6 +1122,7 @@ function miscResponse_() {
     },
     prices: readPrices_(),
     chargingPayer: hhCode_(c['Strom bezahlt von']) || null,
+    meter: meterView_(),
     charging: charging,
     trips: statsTrips_()
   };
@@ -1153,7 +1155,7 @@ function chargingAction_(d, by) {
   if (ct == null) throw new Error('Kein Strompreis für ' + m + ' hinterlegt (Reiter Sonstiges).');
   const amount = r2_(kwh * ct / 100), key = 'Laden@' + m;
   const date = due_(+m.slice(0, 4), +m.slice(5, 7), 31);
-  const note = String(kwh).replace('.', ',') + ' kWh × ' + String(ct).replace('.', ',') + ' ct/kWh';
+  const note = String(kwh).replace('.', ',') + ' kWh × ' + String(ct).replace('.', ',') + ' ct/kWh' + (d.note ? ' · ' + d.note : '');
   const res = withLock_(function () {
     const sh = expSheet_();
     const hit = readExpenses_().filter(function (e) { return e.order === key; })[0];
@@ -1172,6 +1174,153 @@ function chargingAction_(d, by) {
   });
   writeComputed_();
   return { ok: true, mode: res.mode, id: res.id || null, month: m, kwh: kwh, ct: ct, amount: amount };
+}
+
+// ================================================================ Wallbox-Zähler (v2.11)
+//
+// Tab "Wallbox-Data" (schreibt Node-RED laufend, wie MG5-Data): A Name | B Wert | C aktualisiert am | D Quelle
+//   Zeile "Zählerstand kWh"
+// Tab "Zählerstände" (führt die API): A Stichtag | B Zählerstand kWh | C abgelesen am | D Quelle | E kWh | F ct/kWh
+//   | G Betrag | H Buchung | I Hinweis
+// Stichtag = Monatsletzter. dailyJob() (Trigger täglich 23–24 Uhr, einmal installTriggers() ausführen) liest am
+// Monatsletzten den aktuellen Zählerstand, bucht kWh × Preis als "Laden" (nach km im Monat). Verpasst der Trigger
+// den Stichtag, holt der nächste Aufruf (App oder Trigger) das nach – mit Hinweis "verspätet abgelesen".
+
+const WB_SHEET = 'Wallbox-Data', WB_KEY = 'Zählerstand kWh';
+const MLOG_SHEET = 'Zählerstände';
+const MLOG_HEAD = ['Stichtag', 'Zählerstand kWh', 'abgelesen am', 'Quelle', 'kWh', 'ct/kWh', 'Betrag', 'Buchung', 'Hinweis'];
+
+function parseStamp_(v) {
+  if (v instanceof Date) return v;
+  const m = String(v || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:,?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  return m ? new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) : null;
+}
+function fmtStamp_(d) { return d ? Utilities.formatDate(d, Session.getScriptTimeZone(), 'dd.MM.yyyy HH:mm') : ''; }
+
+function wbSheet_() {
+  let sh = ss_().getSheetByName(WB_SHEET);
+  if (!sh) {
+    sh = ss_().insertSheet(WB_SHEET);
+    sh.getRange(1, 1, 2, 4).setValues([['Name', 'Wert', 'aktualisiert am', 'Quelle'], [WB_KEY, '', '', '']]);
+    sh.getRange(1, 1, 1, 4).setFontWeight('bold');
+  }
+  return sh;
+}
+/** aktueller Zählerstand { kwh, at:Date, src, row } oder null */
+function readMeterCur_() {
+  const sh = wbSheet_(), n = sh.getLastRow();
+  if (n < 2) return null;
+  const rows = sh.getRange(2, 1, n - 1, 4).getValues();
+  for (let i = 0; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === WB_KEY) {
+      const kwh = num_(rows[i][1]);
+      return kwh == null ? { row: i + 2 } : { kwh: kwh, at: parseStamp_(rows[i][2]), src: String(rows[i][3] || 'Node-RED'), row: i + 2 };
+    }
+  }
+  return null;
+}
+function mlogSheet_() {
+  let sh = ss_().getSheetByName(MLOG_SHEET);
+  if (!sh) {
+    sh = ss_().insertSheet(MLOG_SHEET);
+    sh.getRange(1, 1, 1, MLOG_HEAD.length).setValues([MLOG_HEAD]).setFontWeight('bold');
+    sh.setFrozenRows(1);
+  }
+  return sh;
+}
+function readMeterLog_() {
+  const sh = mlogSheet_(), n = sh.getLastRow();
+  if (n < 2) return [];
+  return sh.getRange(2, 1, n - 1, MLOG_HEAD.length).getValues().map(function (r) {
+    return { day: fmtDate_(r[0]), kwhAbs: num_(r[1]), at: r[2] instanceof Date ? fmtStamp_(r[2]) : String(r[2] || ''), src: String(r[3] || ''),
+             kwh: num_(r[4]), ct: num_(r[5]), amount: num_(r[6]), booking: String(r[7] || ''), note: String(r[8] || '') };
+  }).filter(function (x) { return /^\d{4}-\d{2}-\d{2}$/.test(x.day) && x.kwhAbs != null; })
+    .sort(function (a, b) { return a.day < b.day ? -1 : 1; });
+}
+function monthEnd_(y, m) { return due_(y, m, 31); }   // m: 1–12
+function isoDay_(d) { return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd'); }
+
+/** Stichtag(e) abrechnen. atMonthEnd=true: Aufruf vom Trigger am Monatsletzten (Stichtag = heute). */
+function ensureMeter_(now, atMonthEnd) {
+  const log = readMeterLog_();
+  if (!log.length) return null;                        // ohne Startwert nichts tun
+  const today = isoDay_(now), t = ymd_(today);
+  const tomorrow = isoDay_(new Date(now.getTime() + 864e5));
+  let target;
+  if (atMonthEnd && tomorrow.slice(8) === '01') target = today;
+  else {
+    const prevEnd = t.m === 1 ? monthEnd_(t.y - 1, 12) : monthEnd_(t.y, t.m - 1);
+    // Nachholen erst ab dem 2. des Folgemonats (der Trigger hat am Stichtag Vorrang)
+    if (now.getDate() < 2) return null;
+    target = prevEnd;
+  }
+  const last = log[log.length - 1];
+  if (last.day >= target) return null;                 // schon erledigt
+  const cur = readMeterCur_();
+  if (!cur || cur.kwh == null) return null;            // noch kein Zählerstand von Node-RED / manuell
+  const hints = [], tp = ymd_(target), tEnd = new Date(tp.y, tp.m - 1, tp.d, 23, 59, 59), at = cur.at || now;
+  if (tEnd - at > 36 * 3600e3) hints.push('Zählerstand vom ' + fmtStamp_(at) + ' (veraltet)');
+  if (at - tEnd > 6 * 3600e3) hints.push('verspätet abgelesen am ' + fmtStamp_(at));
+  const kwh = Math.round((cur.kwh - last.kwhAbs) * 1000) / 1000;
+  const month = target.slice(0, 7);
+  let ct = '', amount = '', booking = '';
+  if (kwh < 0) hints.push('Zählerstand kleiner als beim letzten Stichtag – bitte prüfen');
+  else if (kwh > 0) {
+    const r = chargingAction_({ month: month, kwh: kwh, note: 'Zähler ' + String(last.kwhAbs).replace('.', ',') + ' → ' + String(cur.kwh).replace('.', ',') + ' kWh' }, 'Zähler');
+    ct = r.ct; amount = r.amount; booking = r.id || '';
+  }
+  withLock_(function () {
+    if (readMeterLog_().some(function (x) { return x.day === target; })) return;
+    const p = ymd_(target);
+    mlogSheet_().appendRow([new Date(p.y, p.m - 1, p.d, 12), cur.kwh, cur.at || now, cur.src, kwh, ct, amount, booking, hints.join(' · ')]);
+  });
+  return { target: target, kwh: kwh };
+}
+
+/** Täglicher Trigger (23–24 Uhr): am Monatsletzten abrechnen, sonst ggf. nachholen */
+function dailyJob() { ensureMeter_(new Date(), true); }
+
+/** Einmal im Editor ausführen: legt den täglichen Trigger an (vorhandene dailyJob-Trigger werden ersetzt) */
+function installTriggers() {
+  ScriptApp.getProjectTriggers().forEach(function (tr) { if (tr.getHandlerFunction() === 'dailyJob') ScriptApp.deleteTrigger(tr); });
+  ScriptApp.newTrigger('dailyJob').timeBased().everyDays(1).atHour(23).nearMinute(30).create();
+  Logger.log('Trigger dailyJob angelegt (täglich 23–24 Uhr).');
+}
+
+function meterView_() {
+  const cur = readMeterCur_(), log = readMeterLog_(), now = new Date();
+  const last = log.length ? log[log.length - 1] : null;
+  let since = null;
+  if (cur && cur.kwh != null && last) {
+    const k = Math.round((cur.kwh - last.kwhAbs) * 1000) / 1000;
+    const ct = priceAt_(readPrices_(), today_().slice(0, 7) + '-01');
+    since = { from: last.day, kwh: k, ct: ct, est: ct == null ? null : r2_(Math.max(0, k) * ct / 100) };
+  }
+  const problems = [];
+  if (last && /prüfen/.test(last.note)) problems.push(last.note);
+  if (cur && cur.at && (now - cur.at) > 48 * 3600e3) problems.push('Zählerstand seit ' + fmtStamp_(cur.at) + ' nicht aktualisiert – Node-RED prüfen');
+  if (!log.length) problems.push('Kein Startwert im Tab „Zählerstände“');
+  return {
+    cur: cur && cur.kwh != null ? { kwh: cur.kwh, at: fmtStamp_(cur.at), src: cur.src, ageH: cur.at ? Math.round((now - cur.at) / 36e5) : null } : null,
+    log: log.slice(-24).reverse(), since: since, problem: problems.join(' · ') || null
+  };
+}
+
+/** Zählerstand von Hand (Fallback, wenn Node-RED nicht liefert) */
+function meterAction_(d, driver) {
+  const kwh = num_(d.kwh);
+  if (kwh == null || kwh < 0 || kwh > 10000000) throw new Error('Bitte einen gültigen Zählerstand in kWh eingeben.');
+  const at = d.at ? new Date(d.at) : new Date();
+  if (isNaN(at.getTime())) throw new Error('Ungültiger Zeitpunkt.');
+  const last = readMeterLog_().slice(-1)[0];
+  if (last && kwh < last.kwhAbs) throw new Error('Zählerstand ist kleiner als beim letzten Stichtag (' + last.kwhAbs + ' kWh).');
+  withLock_(function () {
+    const sh = wbSheet_(), cur = readMeterCur_();
+    const row = cur ? cur.row : sh.getLastRow() + 1;
+    sh.getRange(row, 1, 1, 4).setValues([[WB_KEY, kwh, at, 'manuell (' + driver + ')']]);
+  });
+  try { ensureMeter_(new Date(), false); } catch (e) {}
+  return miscResponse_();
 }
 
 /** Einmalig im Editor ausführen: schreibt Haushalte im Tab "Buchungen" aus (statt PK/TM) und setzt Überschriften. */

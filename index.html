@@ -325,6 +325,7 @@
   .tgap .ic { width: 18px; height: 18px; flex: none; margin-top: 1px; }
   .tgap small { display: block; font-size: 12.5px; opacity: .85; }
   .tgap .btn { flex: none; padding: 8px 12px; font-size: 14px; }
+  .mdiv { height: 1px; background: var(--line); margin: 18px -16px 14px; }
   .xbadge { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #ff3b30; color: #fff;
             font-style: normal; font-size: 12px; font-weight: 800; margin-left: 6px; vertical-align: 1px; flex: none; }
   .lrow.alert small { color: var(--alert-ink); font-weight: 600; }
@@ -639,7 +640,7 @@ var QS = new URLSearchParams(location.search);
 var KEY = QS.get('k') || sget('fb-key') || '';
 if (QS.get('k')) sset('fb-key', QS.get('k'));
 var ME = sget('fb-driver') || '';
-var APP_VERSION = '2.10';
+var APP_VERSION = '2.11';
 var DEMO = QS.has('demo') || API_URL.indexOf('HIER_') >= 0;
 
 /* ---------- API ---------- */
@@ -666,7 +667,7 @@ function netErr() {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.10 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.11 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -678,6 +679,7 @@ function mock(b) {
     if (b.action === 'stats') return res(mockStats());
     if (b.action === 'misc') return res(mockMisc());
     if (/^trip/.test(b.action)) { try { return res(mockTrips(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
+    if (b.action === 'setMeter') { MOCK_METER.cur = { kwh: +b.kwh, at: b.at.replace('T', ' '), src: 'manuell (' + b.driver + ')' }; MOCK_METER.since.kwh = +b.kwh - 3999.527; MOCK_METER.since.est = Math.round(MOCK_METER.since.kwh * 18.3) / 100; return res(mockMisc()); }
     if (b.action === 'setPrice') { MOCK_PRICES = MOCK_PRICES.filter(function (p) { return p.from !== b.from; }).concat([{ from: b.from, ct: +b.ct, by: b.driver }]); return res(mockMisc()); }
     if (/Expense$|ettle|Order|Draft/.test(b.action)) { try { return res(mockExpAction(b)); } catch (e) { return res({ ok: false, error: e.message }); } }
     var c = MOCK.cars.filter(function (x) { return x.sheet === b.sheet; })[0];
@@ -742,6 +744,10 @@ function mockTrips(b) {
   return { ok: true, sheet: b.sheet, rows: JSON.parse(JSON.stringify(rows)), drivers: MOCK.drivers, households: hh };
 }
 
+var MOCK_METER = { cur: { kwh: 4123.4, at: '20.10.2026 12:15', src: 'Node-RED', ageH: 0 },
+  since: { from: '2026-09-30', kwh: 123.873, ct: 18.3, est: 22.67 }, problem: null,
+  log: [{ day: '2026-09-30', kwhAbs: 3999.527, kwh: 1202.897, ct: 18.3, amount: 220.13, note: 'Startwert' },
+        { day: '2026-08-31', kwhAbs: 2796.63, kwh: 312.4, ct: 18.3, amount: 57.17, note: '' }] };
 var MOCK_PRICES = [{ from: '2025-01-01', ct: 17.9, by: 'Anna' }, { from: '2026-04-01', ct: 18.3, by: 'Ben' }];
 function mockMisc() {
   var d = new Date(), st = isoOf(new Date(d.getFullYear(), d.getMonth() - 17, 15));
@@ -752,7 +758,8 @@ function mockMisc() {
       { key: 'Schwitzkarre', label: 'Schwitzkarre', start: 24000, owner: 'TM' },
       { key: 'Julia Brettner', label: 'Julia Brettner', start: 11000, owner: 'PK' },
       { key: 'Lade', label: 'Ladeinfrastruktur', start: 1200, owner: 'PK' }] },
-    prices: MOCK_PRICES.slice(), chargingPayer: 'PK', charging: ch, trips: ms.trips };
+    prices: MOCK_PRICES.slice(), chargingPayer: 'PK', charging: ch, trips: ms.trips,
+    meter: MOCK_METER };
 }
 
 var MOCKS = [];
@@ -851,6 +858,7 @@ var P = {
   chart:    '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
   list:     '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
   mic:      '<path d="M12 19v3"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><rect x="9" y="2" width="6" height="13" rx="3"/>',
+  euro:     '<path d="M4 10h12"/><path d="M4 14h9"/><path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/>',
   dots:     '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
   scale:    '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
   link:     '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
@@ -1210,7 +1218,7 @@ function apiGetMisc() {
 }
 function loadMisc() {
   if (!KEY && !DEMO) return;
-  apiGetMisc().then(function (d) { MISC = d; renderMisc(); }).catch(function (e) {
+  apiGetMisc().then(function (d) { MISC = d; renderMisc(); updateTripBadges(); }).catch(function (e) {
     var m = e.message || String(e);
     if (/Unbekannte Aktion/.test(m)) $('m-menu').innerHTML = '<h4>' + ic('alert') + 'API-Update nötig</h4><div class="sub">Dieser Reiter braucht die API ab Version ' + APP_VERSION + '. Code.gs im Projekt „Fahrtenbuch API“ ersetzen und eine neue Version bereitstellen.</div>';
     else toast(m, true);
@@ -1288,12 +1296,7 @@ function renderMisc() {
     + '<div><label for="p-from">gültig ab</label><input id="p-from" type="date" value="' + firstOfNextMonth() + '"></div></div>'
     + '<div class="msg" id="p-msg"></div>'
     + '<button class="btn primary" id="p-save" style="width:100%;margin-top:12px" onclick="savePrice()">' + ic('check') + 'Preis speichern</button>';
-  var ch = MISC.charging || [];
-  s += '<div class="sectitle">Von der Ladestation</div>'
-    + (ch.length ? '<div class="hist">' + ch.map(function (x) {
-        return '<div><span>' + monLbl(x.month, true) + ' <small class="muted">· ' + esc(x.note) + '</small></span><span>' + eur(x.amount) + '</span></div>'; }).join('') + '</div>'
-      : '<div class="infoline">Noch keine Monatswerte. Node-RED schickt den Verbrauch einmal im Monat; die Buchung „Laden“ erscheint dann automatisch unter Ausgaben (aufgeteilt nach km im Monat).</div>');
-  $('m-strom').innerHTML = s;
+  $('m-strom').innerHTML = meterHTML() + '<div class="mdiv"></div>' + s.replace('<h4>' + ic('zap') + 'Strompreis Ladestation</h4>', '<h4>' + ic('euro') + 'Strompreis</h4>');
 
   // Links
   var l = '<h4>' + ic('link') + 'Links</h4>'
@@ -1311,9 +1314,10 @@ var MSUB = '';
 var MISC_PAGES = [
   ['m-trips', 'list',  'Fahrtenbuch', function () { return 'Einträge ansehen, korrigieren, Lücken füllen'; }],
   ['m-auf',   'scale', 'Auflösung simulieren', function () { return 'Hochrechnung nach Vertrag §5'; }],
-  ['m-strom', 'zap',   'Strompreis & Ladestation', function () {
+  ['m-strom', 'zap',   'Ladestation & Strompreis', function () {
       var pr = (MISC.prices || []).filter(function (p) { return p.from <= todayISO(); }).sort(function (a, b) { return a.from < b.from ? 1 : -1; })[0];
-      return pr ? fmtCt(pr.ct) + ' ct/kWh seit ' + dDE(pr.from) : 'noch kein Preis hinterlegt'; }],
+      var m = MISC.meter, t = m && m.since && m.cur ? 'dieser Monat ' + fmtKwh(Math.max(0, m.since.kwh)) + ' kWh · ' : '';
+      return t + (pr ? fmtCt(pr.ct) + ' ct/kWh' : 'noch kein Strompreis'); }],
   ['m-siri',  'mic',   'Siri-Kurzbefehle', function () { var n = (MISC.shortcuts || []).length; return n ? n + ' Kurzbefehl' + (n > 1 ? 'e' : '') + ' fürs iPhone' : ''; }],
   ['m-links', 'link',  'Links', function () { return 'Google Sheet' + (MISC.contractUrl ? ', Vertrag' : ''); }]
 ];
@@ -1321,9 +1325,11 @@ function renderMiscMenu() {
   if (!MISC) return;
   var tp = tripProblemText();
   $('m-menu').innerHTML = MISC_PAGES.filter(function (pg) { return pg[0] !== 'm-siri' || (MISC.shortcuts || []).length; }).map(function (pg) {
-    var alert = pg[0] === 'm-trips' && tp;
+    var mp = MISC.meter && MISC.meter.problem;
+    var alert = (pg[0] === 'm-trips' && tp) || (pg[0] === 'm-strom' && mp);
+    if (pg[0] === 'm-strom' && mp) alert = 'Zähler: ' + mp;
     return '<a class="lrow' + (alert ? ' alert' : '') + '" href="javascript:void(0)" onclick="miscOpen(\'' + pg[0] + '\')">' + ic(pg[1]) + '<span>' + pg[2]
-      + '<small>' + (alert ? esc(tp) : esc(pg[3]())) + '</small></span>' + (alert ? '<i class="xbadge">!</i>' : '') + ic('chevron') + '</a>';
+      + '<small>' + (alert ? esc(alert === true ? tp : alert) : esc(pg[3]())) + '</small></span>' + (alert ? '<i class="xbadge">!</i>' : '') + ic('chevron') + '</a>';
   }).join('');
 }
 function miscOpen(id) {
@@ -1336,6 +1342,48 @@ function miscOpen(id) {
     renderTrips(); loadTrips();
   }
   window.scrollTo(0, 0);
+}
+function fmtKwh(n, d) { return Number(n).toLocaleString('de-AT', { minimumFractionDigits: d == null ? 1 : d, maximumFractionDigits: d == null ? 1 : d }); }
+function meterHTML() {
+  var m = MISC.meter;
+  if (!m) return '<h4>' + ic('zap') + 'Wallbox-Zähler</h4><div class="msg warn" style="display:block">Braucht die API ab Version ' + APP_VERSION + '.</div>';
+  var h = '<h4>' + ic('zap') + 'Wallbox-Zähler</h4>'
+    + '<div class="sub">Abrechnung am Monatsletzten: kWh × Strompreis, aufgeteilt nach den km der Schwitzkarre im Monat.</div>';
+  if (m.problem) h += '<div class="msg err" style="display:block;margin-top:8px">' + ic('alert') + ' ' + esc(m.problem) + '</div>';
+  if (m.cur) {
+    h += '<div class="bigval">' + fmtKwh(m.cur.kwh) + '<small>kWh</small></div>'
+      + '<div class="infoline">Stand <b>' + esc(m.cur.at || '–') + '</b> · ' + esc(m.cur.src || '') + '</div>';
+  } else {
+    h += '<div class="infoline" style="margin-top:8px">Noch kein aktueller Zählerstand. Node-RED schreibt ihn laufend ins Sheet (Tab „Wallbox-Data“) – oder unten von Hand eintragen.</div>';
+  }
+  if (m.since && m.cur) {
+    h += '<div class="aufres" style="margin-top:12px"><div class="arow"><span>Seit ' + dDE(m.since.from) + '<small>laufender Monat, wird am Monatsletzten gebucht</small></span>'
+      + '<b>' + fmtKwh(Math.max(0, m.since.kwh)) + ' kWh' + (m.since.est != null ? ' · ≈ ' + eur(m.since.est) : '') + '</b></div></div>';
+  }
+  h += '<details class="tv" style="margin-top:12px"><summary>Zählerstand von Hand eintragen</summary>'
+    + '<div class="fields" style="margin-top:10px"><div><label for="mt-kwh">Zählerstand (kWh)</label><input id="mt-kwh" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 4.123,4"></div>'
+    + '<div><label for="mt-at">abgelesen am</label><input id="mt-at" type="datetime-local" value="' + nowLocal() + '"></div></div>'
+    + '<div class="msg" id="mt-msg"></div><button class="btn primary" id="mt-save" style="width:100%;margin-top:10px" onclick="saveMeter()">' + ic('check') + 'Zählerstand speichern</button></details>';
+  var log = m.log || [];
+  if (log.length) {
+    h += '<div class="sectitle">Stichtage</div><div class="hist">' + log.map(function (x) {
+      var bad = /prüfen/.test(x.note), right = x.amount != null ? eur(x.amount) : (x.kwh != null && x.kwh <= 0 ? '–' : '');
+      var sub = x.note === 'Startwert' ? 'Startwert ' + fmtKwh(x.kwhAbs, 3) + ' kWh'
+              : fmtKwh(x.kwh != null ? x.kwh : 0) + ' kWh' + (x.ct != null ? ' × ' + fmtCt(x.ct) + ' ct' : '') + ' · Zähler ' + fmtKwh(x.kwhAbs);
+      return '<div><span>' + dDE(x.day) + ' <small class="muted">· ' + esc(sub) + '</small>'
+        + (x.note && x.note !== 'Startwert' ? '<small style="display:block;color:' + (bad ? 'var(--alert-ink)' : 'var(--muted)') + '">' + esc(x.note) + '</small>' : '') + '</span><span>' + right + '</span></div>';
+    }).join('') + '</div>';
+  }
+  return h;
+}
+function nowLocal() { var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
+function saveMeter() {
+  var k = anum($('mt-kwh').value), at = $('mt-at').value, msg = $('mt-msg');
+  if (!(k >= 0)) { msg.className = 'msg err'; msg.textContent = 'Bitte den Zählerstand in kWh eingeben.'; return; }
+  if (!ME) return openPicker(true);
+  $('mt-save').disabled = true;
+  apiPost({ action: 'setMeter', kwh: k, at: at }).then(function (d) { MISC = Object.assign(MISC || {}, d); renderMisc(); updateTripBadges(); toast('Zählerstand gespeichert', false, 'check'); })
+    .catch(function (e) { $('mt-save').disabled = false; msg.className = 'msg err'; msg.textContent = e.message || String(e); });
 }
 function fmtNum(n) { return n == null ? '' : Number(n).toLocaleString('de-AT', { maximumFractionDigits: 2 }); }
 function fmtCt(n) { return Number(n).toLocaleString('de-AT', { minimumFractionDigits: 1, maximumFractionDigits: 2 }); }
@@ -1447,7 +1495,7 @@ function checkTrips() {
   });
 }
 function updateTripBadges() {
-  var n = tripProbCount('Schwitzkarre') + tripProbCount('Julia Brettner');
+  var n = tripProbCount('Schwitzkarre') + tripProbCount('Julia Brettner') + (MISC && MISC.meter && MISC.meter.problem ? 1 : 0);
   $('misc-badge').hidden = !n;
   if (VIEW === 'misc') { if (MSUB === 'm-trips') renderTrips(); else renderMiscMenu(); }
 }
