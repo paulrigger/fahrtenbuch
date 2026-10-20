@@ -1,5 +1,5 @@
 /**
- * Fahrtenbuch API – v2.9 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
+ * Fahrtenbuch API – v2.10 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
  *
  * Bereitstellen als Web-App:  Ausführen als: Ich   |   Zugriff: Jeder
  * Einmalig: Funktion setup() ausführen -> API-Key steht im Log (Ausführungsprotokoll).
@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.9';
+const VERSION = '2.10';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -459,7 +459,7 @@ function writeComputed_() {
   if (String(sh.getRange(1, 21).getValue()) !== 'km von') {
     sh.getRange(1, 21, 1, 4).setValues([['km von', 'km bis', 'km ' + HH_LABELS.PK, 'km ' + HH_LABELS.TM]]).setFontWeight('bold');
   }
-  const byRow = {};
+  const byRow = {}, S = fsep_();
   exps.forEach(function (e) { byRow[e.row] = e; });
   const fQR = [], vUV = [], fWX = [];
   for (let r = 2; r <= n; r++) {
@@ -468,18 +468,18 @@ function writeComputed_() {
     const win = e.window && e.window.from != null && e.window.to != null &&
                 (e.split === 'km' || e.split === 'kmMonat') ? e.window : null;
     let q;
-    if (win) q = '=IF(W' + r + '+X' + r + '=0,1/2,W' + r + '/(W' + r + '+X' + r + '))';
+    if (win) q = '=IF(W' + r + '+X' + r + '=0' + S + '1/2' + S + 'W' + r + '/(W' + r + '+X' + r + '))';
     else if (e.split === 'fix') q = '=H' + r;
     else if (e.split === 'PK') q = '=1';
     else if (e.split === 'TM') q = '=0';
     else if (e.split === '50:50') q = '=1/2';
-    else q = '=' + e.share;
+    else q = '=' + Math.round(e.share * 10000) + '/10000';
     const pkLbl = String(HH_LABELS.PK).replace(/"/g, '');
-    fQR.push([q, '=ROUND(IF(OR(F' + r + '="PK",F' + r + '="' + pkLbl + '"),E' + r + '*(1-Q' + r + '),-E' + r + '*Q' + r + '),2)']);
+    fQR.push([q, '=ROUND(IF(OR(F' + r + '="PK"' + S + 'F' + r + '="' + pkLbl + '")' + S + 'E' + r + '*(1-Q' + r + ')' + S + '-E' + r + '*Q' + r + ')' + S + '2)']);
     if (win) {
       const car = e.cat === 'Tanken' ? TANK_CAR : e.car;
       vUV.push([win.from, win.to]);
-      fWX.push([kmFormula_(car, 'PK', r), kmFormula_(car, 'TM', r)]);
+      fWX.push([kmFormula_(car, 'PK', r, S), kmFormula_(car, 'TM', r, S)]);
     } else { vUV.push(['', '']); fWX.push(['', '']); }
   }
   // nur geänderte Zeilen schreiben (schneller, weniger Neuberechnung im Sheet)
@@ -501,14 +501,22 @@ function writeComputed_() {
   sh.getRange(2 + lo, 23, k, 2).setFormulas(fWX.slice(lo, hi + 1));
 }
 
+/** Trennzeichen für Formeln: setFormula liest Formeln im Gebietsschema des Sheets
+ *  (de_AT u. a. -> Semikolon, en -> Komma). */
+function fsep_() {
+  const loc = String(ss_().getSpreadsheetLocale() || 'en');
+  return /^(en|ja|ko|zh|th|he|iw|hi|ms|fil|tl|sw|ga|cy)/i.test(loc) ? ',' : ';';
+}
+
 /** km eines Haushalts im Fenster [U,V] aus dem Fahrtenbuch des Autos (Fahrten anteilig, wie kmSplit_) */
-function kmFormula_(car, hh, r) {
+function kmFormula_(car, hh, r, S) {
+  S = S || ',';
   const names = DRIVERS.filter(function (d) { return HOUSEHOLDS[d] === hh; })
     .map(function (d) { return d.toLowerCase().replace(/[^a-z0-9äöüß]/g, ''); }).join('|') || 'x^';
   const q = "'" + car.replace(/'/g, "''") + "'!";
-  return '=ARRAYFORMULA(LET(b,' + q + '$B$2:$B,c,' + q + '$C$2:$C,w,LOWER(' + q + '$E$2:$E&""),'
+  return ('=ARRAYFORMULA(LET(b,' + q + '$B$2:$B,c,' + q + '$C$2:$C,w,LOWER(' + q + '$E$2:$E&""),'
     + 'ov,IF(c<V' + r + ',c,V' + r + ')-IF(b>U' + r + ',b,U' + r + '),'
-    + 'SUMPRODUCT(ISNUMBER(b)*ISNUMBER(c)*(c>b)*(ov>0)*REGEXMATCH(w,"' + names + '")*ov)))';
+    + 'SUMPRODUCT(ISNUMBER(b)*ISNUMBER(c)*(c>b)*(ov>0)*REGEXMATCH(w,"' + names + '")*ov)))').replace(/,/g, S);
 }
 
 /** { Auto: { 'JJJJ-MM': {from, to} } } – erster Start / letztes Ende je Monat (Datum erbt von der Vorzeile) */

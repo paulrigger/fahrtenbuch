@@ -341,6 +341,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.10** | Formeln im Sheet mit Semikolon (deutsches Gebietsschema); verständliche Meldung bei Netzwerkfehlern |
 | **2.9** | Schnellerer Start: letzter Stand sofort aus dem Gerätespeicher, Aktualisierung im Hintergrund; API schreibt nur geänderte Zeilen |
 | **2.8** | Aufteilung im Sheet als nachvollziehbare Formeln (Spalten Q, R, W, X) statt fixer Werte |
 | **2.7** | Fahrtenbuch-Seite mit Lücken/Korrekturen, eigene Aufteilung bei Ausgaben, Fälligkeitstag bei Daueraufträgen, Menü unter „Sonstiges“ |

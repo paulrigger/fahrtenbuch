@@ -639,7 +639,7 @@ var QS = new URLSearchParams(location.search);
 var KEY = QS.get('k') || sget('fb-key') || '';
 if (QS.get('k')) sset('fb-key', QS.get('k'));
 var ME = sget('fb-driver') || '';
-var APP_VERSION = '2.9';
+var APP_VERSION = '2.10';
 var DEMO = QS.has('demo') || API_URL.indexOf('HIER_') >= 0;
 
 /* ---------- API ---------- */
@@ -653,16 +653,20 @@ function apiPost(body) {
   if (DEMO) return mock(body);
   // text/plain vermeidet den CORS-Preflight, den Apps Script nicht beantwortet
   return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
-    .then(function (r) { return r.json(); }).then(unwrap);
+    .catch(netErr).then(function (r) { return r.json(); }).then(unwrap);
 }
 /* Lokaler Zwischenspeicher: App zeigt sofort den letzten Stand, aktualisiert im Hintergrund */
 function cget(k) { if (DEMO) return null; try { if (sget('fb-c-key') !== KEY) return null; var v = localStorage.getItem('fb-c-' + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
 function cput(k, d) { if (DEMO) return d; try { sset('fb-c-key', KEY); localStorage.setItem('fb-c-' + k, JSON.stringify(d)); } catch (e) {} return d; }
 function cached(k, p) { return p.then(function (d) { return cput(k, d); }); }
+/* Netzwerkfehler (Safari: "Load failed", Chrome: "Failed to fetch") verständlich melden */
+function netErr() {
+  throw new Error('Keine Verbindung zum Server (Netz schwach?). Bitte prüfen, ob es gespeichert wurde, und sonst nochmal versuchen.');
+}
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.9 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.10 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -1565,7 +1569,7 @@ function saveTrip() {
   $('t-ok').disabled = true;
   var isIns = TF.mode === 'insert';
   apiPost(body).then(function (d) { tripDone(d, isIns ? 'Lücke eingetragen' : 'Fahrt gespeichert'); })
-    .catch(function (x) { $('t-ok').disabled = false; $('t-msg').className = 'msg err'; $('t-msg').textContent = x.message || String(x); });
+    .catch(function (x) { $('t-ok').disabled = false; $('t-msg').className = 'msg err'; $('t-msg').textContent = x.message || String(x); loadTrips(); });
 }
 function deleteTrip() {
   if (!TF || !confirm('Diese Fahrt wirklich aus dem Fahrtenbuch löschen?')) return;
