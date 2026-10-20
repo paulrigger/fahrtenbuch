@@ -331,6 +331,7 @@
   .tgap small { display: block; font-size: 12.5px; opacity: .85; }
   .tgap .btn { flex: none; padding: 8px 12px; font-size: 14px; }
   .mdiv { height: 1px; background: var(--line); margin: 18px -16px 14px; }
+  .xi.preview { background: repeating-linear-gradient(135deg, transparent 0 10px, var(--grid) 10px 11px); }
   .xbadge { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #ff3b30; color: #fff;
             font-style: normal; font-size: 12px; font-weight: 800; margin-left: 6px; vertical-align: 1px; flex: none; }
   .lrow.alert small { color: var(--alert-ink); font-weight: 600; }
@@ -1227,7 +1228,7 @@ function apiGetMisc() {
 }
 function loadMisc() {
   if (!KEY && !DEMO) return;
-  apiGetMisc().then(function (d) { MISC = d; renderMisc(); updateTripBadges(); }).catch(function (e) {
+  apiGetMisc().then(function (d) { MISC = d; renderMisc(); updateTripBadges(); if (EXP) renderExp(); }).catch(function (e) {
     var m = e.message || String(e);
     if (/Unbekannte Aktion/.test(m)) $('m-menu').innerHTML = '<h4>' + ic('alert') + 'API-Update nötig</h4><div class="sub">Dieser Reiter braucht die API ab Version ' + APP_VERSION + '. Code.gs im Projekt „Fahrtenbuch API“ ersetzen und eine neue Version bereitstellen.</div>';
     else toast(m, true);
@@ -1678,6 +1679,12 @@ function renderExp() {
     + '<div class="amt">' + eur(Math.abs(s)) + '</div>'
     + '<div class="who">' + who + '</div>'
     + (EXP.saldoProvisional ? '<div class="hint">Enthält vorläufige Tankbeträge – fix ab der nächsten Volltankung.</div>' : '')
+    + (function () {
+        var pv = chargingPreview(); if (!pv) return '';
+        var t = s + pv.bal;
+        return '<div class="hint">Noch nicht enthalten: Laden ' + pv.month + ' ≈ ' + eur(pv.est) + ' (läuft). Inklusive wäre der Saldo ≈ ' + eur(Math.abs(t))
+          + (Math.abs(t) > 0.004 ? ' (' + esc(hhLabel(t > 0 ? 'TM' : 'PK')) + ' → ' + esc(hhLabel(t > 0 ? 'PK' : 'TM')) + ')' : '') + '.</div>';
+      })()
     + settleUI;
 
   $('settlements').innerHTML = (EXP.settlements || []).map(function (st) {
@@ -1697,14 +1704,38 @@ function renderExp() {
   var open = EXP.expenses.filter(function (e) { return e.status === 'offen'; });
   var pend = EXP.expenses.filter(function (e) { return e.status === 'in Abrechnung'; });
   var done = EXP.expenses.filter(function (e) { return e.status === 'abgerechnet'; });
+  var pv = chargingPreview();
   var html = '<div class="list-h"><span>Offen · ' + open.length + '</span></div>'
-    + (open.length ? '<div class="xlist">' + open.map(xItem).join('') + '</div>' : '<div class="xlist"><div class="empty">Keine offenen Ausgaben 🎉</div></div>')
+    + ((open.length || pv) ? '<div class="xlist">' + (pv ? previewItem(pv) : '') + open.map(xItem).join('') + '</div>' : '<div class="xlist"><div class="empty">Keine offenen Ausgaben 🎉</div></div>')
     + (pend.length ? '<div class="list-h"><span>In Abrechnung · ' + pend.length + '</span></div><div class="xlist">' + pend.map(xItem).join('') + '</div>' : '')
     + '<div class="list-h"><span>Abgerechnet · ' + done.length + '</span><button onclick="SHOW_DONE=!SHOW_DONE;renderExp()">' + (SHOW_DONE ? 'ausblenden' : 'anzeigen') + '</button></div>'
     + (SHOW_DONE && done.length ? '<div class="xlist">' + done.map(xItem).join('') + '</div>' : '');
   $('xlists').innerHTML = html;
   renderOrders();
   updateBadge();
+}
+
+/* Laden des laufenden Monats als Vorschau (wird erst am Monatsletzten gebucht) */
+var MON_LONG = ['Jänner', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+function chargingPreview() {
+  var m = MISC && MISC.meter, sn = m && m.since;
+  if (!sn || !m.cur || !(sn.kwh > 0) || sn.est == null) return null;
+  var f = sn.from.split('-'), start = new Date(+f[0], +f[1] - 1, +f[2] + 1);       // Tag nach dem letzten Stichtag
+  var mk = monKey(start), end = new Date(start.getFullYear(), start.getMonth() + 1, 0);
+  var km = { PK: 0, TM: 0 };
+  (MISC.trips || []).forEach(function (t) { if (t.car === 'Schwitzkarre' && t.m === mk) km[t.h] = (km[t.h] || 0) + t.km; });
+  var tot = km.PK + km.TM, sh = tot ? km.PK / tot : 0.5, payer = MISC.chargingPayer || 'PK';
+  var bal = payer === 'PK' ? sn.est * (1 - sh) : -sn.est * sh;
+  return { month: MON_LONG[start.getMonth()], end: end, kwh: sn.kwh, ct: sn.ct, est: sn.est, share: sh, km: km, payer: payer, bal: Math.round(bal * 100) / 100 };
+}
+function previewItem(pv) {
+  function nb(h) { return esc(hhLabel(h)).replace(/ /g, '&nbsp;'); }
+  return '<div class="xi preview" onclick="showView(\'misc\');miscOpen(\'m-strom\')"><div class="t Schwitzkarre">' + ic('zap') + '</div>'
+    + '<div class="m"><b>Laden ' + pv.month + ' (läuft)</b>'
+    + '<span>' + fmtKwh(pv.kwh) + ' kWh × ' + fmtCt(pv.ct) + ' ct · wird am ' + dDE(isoOf(pv.end)) + ' gebucht</span>'
+    + '<span>bezahlt von ' + nb(pv.payer) + '</span>'
+    + '<span>' + nb('PK') + '&nbsp;' + pct(pv.share).replace(' ', '&nbsp;') + ' · ' + nb('TM') + '&nbsp;' + pct(1 - pv.share).replace(' ', '&nbsp;') + ' (km bisher)</span></div>'
+    + '<div class="r"><b>≈ ' + eur(pv.est) + '</b><span><span class="tag" style="background:var(--raised);color:var(--muted)">Vorschau</span></span></div></div>';
 }
 
 /* Rote Zahl am Tab: was ICH gerade erledigen muss */
@@ -2051,7 +2082,8 @@ renderMe();
   try { updateTripBadges(); } catch (e) {}
 })();
 load();
-loadExp();   // auch im Fahrten-Tab, damit die rote Zahl stimmt
+loadExp();
+loadMisc();   // für Lade-Vorschau, Zähler-Hinweise   // auch im Fahrten-Tab, damit die rote Zahl stimmt
 setInterval(function () { if (!document.hidden && !DLG && !XF && !CUR_ORD) { load(); loadExp(); } }, 60000);
 setInterval(function () { if (!document.hidden && !TF) checkTrips(); }, 300000);   // Fahrtenbuch-Probleme alle 5 min
 checkTrips();   // alle 60 s still aktualisieren
