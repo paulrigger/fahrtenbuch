@@ -305,6 +305,8 @@
   .tbsum .bad { background: var(--warn-bg); color: var(--warn-ink); }
   .tbsum .ok { background: var(--raised); color: var(--ink); } .tbsum .ok .ic { width: 15px; height: 15px; }
   .tblist { margin-top: 8px; }
+  .tsep { height: 14px; }
+  .tsep + .ti { border-top: 0; }
   .ti { display: flex; align-items: center; gap: 12px; padding: 10px 2px; border-top: 1px solid var(--line); cursor: pointer; }
   .ti:first-child { border-top: 0; }
   .ti .d { width: 46px; flex: none; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; line-height: 1.15; }
@@ -1482,13 +1484,19 @@ function renderTrips() {
       iss.overlaps.length ? '<span class="bad">' + iss.overlaps.length + ' Überschneidung' + (iss.overlaps.length > 1 ? 'en' : '') + '</span>' : '',
       iss.unknown ? '<span class="bad">' + iss.unknown + '× Fahrer:in unbekannt</span>' : ''].filter(Boolean).join('')
     : '<span class="ok">' + ic('check') + 'Keine Lücken – alles lückenlos</span>') + '</div>';
-  var items = [], shown = 0;
+  var items = [], shown = 0, done = {};
   for (var i = rows.length - 1; i >= 0 && shown < TB.show; i--) {
     var r = rows[i], prob = r.issue || !r.p;
     if (TB.filter === 'prob' && !prob) continue;
-    items.push(tbItem(r, i)); shown++;
-    if (r.issue) items.push(tbIssue(r, i));
+    if (!done[i]) { items.push(tbItem(r, i)); shown++; done[i] = 1; }
+    if (r.issue) {
+      items.push(tbIssue(r, i));
+      // in der Problem-Ansicht auch die Fahrt VOR der Lücke/Überschneidung zeigen
+      if (TB.filter === 'prob' && !done[r.issue.prev]) { items.push(tbItem(rows[r.issue.prev], r.issue.prev)); done[r.issue.prev] = 1; }
+    }
+    if (TB.filter === 'prob') items.push('<div class="tsep"></div>');
   }
+  if (items.length && /tsep/.test(items[items.length - 1])) items.pop();
   h += '<div id="tb-body"><div class="tblist">' + (items.length ? items.join('') : '<div class="empty">Keine Probleme gefunden 🎉</div>') + '</div>'
     + (shown >= TB.show ? '<button class="btn ghost" style="width:100%;margin-top:10px" onclick="tbMore()">Ältere anzeigen</button>' : '') + '</div>';
   $('m-trips').innerHTML = h;
