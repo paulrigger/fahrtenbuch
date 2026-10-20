@@ -1,5 +1,5 @@
 /**
- * Fahrtenbuch API – v2.11 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
+ * Fahrtenbuch API – v2.12 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
  *
  * Bereitstellen als Web-App:  Ausführen als: Ich   |   Zugriff: Jeder
  * Einmalig: Funktion setup() ausführen -> API-Key steht im Log (Ausführungsprotokoll).
@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.11';
+const VERSION = '2.12';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -531,7 +531,7 @@ function monthWindows_() {
       let m = '';
       if (r[0] instanceof Date) m = Utilities.formatDate(r[0], tz, 'yyyy-MM');
       else if (fmtDate_(r[0])) m = fmtDate_(r[0]).slice(0, 7);
-      if (/^\d{4}-\d{2}$/.test(m)) lastM = m; else m = lastM;
+      if (/^\d{4}-\d{2}$/.test(m) && plausibleMonth_(m)) lastM = m; else m = lastM;   // Tippfehler im Jahr -> Vorzeile
       const s = num_(r[1]), e = num_(r[2]);
       if (!m || s == null || e == null || e <= s || e - s > MAX_TRIP_KM) return;
       const w = o[m] = o[m] || { from: s, to: e };
@@ -925,6 +925,9 @@ function addStage_(o, amt, from, driver) {
 //   trips: [{ m:'2026-10', car, p:'Paul', h:'PK', km }]   (Fahrten ohne Datum erben das Datum der Vorzeile)
 //   costs: [{ m:'2026-10', car, cat, amount }]          (ohne Entwürfe)
 
+/** Jahr zwischen 2020 und nächstem Jahr – schützt vor Tippfehlern wie 2525 oder 0205 */
+function plausibleMonth_(m) { const y = +String(m).slice(0, 4), cy = new Date().getFullYear(); return y >= 2020 && y <= cy + 1; }
+
 /** km je Monat/Auto/Person aus den Fahrtenbüchern (Fahrten ohne Datum erben das Datum der Vorzeile) */
 function statsTrips_() {
   const tz = Session.getScriptTimeZone(), agg = {};
@@ -936,7 +939,7 @@ function statsTrips_() {
       let m = '';
       if (r[0] instanceof Date) m = Utilities.formatDate(r[0], tz, 'yyyy-MM');
       else if (fmtDate_(r[0])) m = fmtDate_(r[0]).slice(0, 7);
-      if (/^\d{4}-\d{2}$/.test(m)) lastM = m; else m = lastM;
+      if (/^\d{4}-\d{2}$/.test(m) && plausibleMonth_(m)) lastM = m; else m = lastM;   // Tippfehler im Jahr -> Vorzeile
       const s = num_(r[1]), e = num_(r[2]), h = household_(r[4]);
       if (!m || s == null || e == null || e <= s || e - s > MAX_TRIP_KM || !h) return;
       const p = DRIVERS.filter(function (d) { return String(r[4]).toLowerCase().indexOf(d.toLowerCase()) >= 0; })[0] || h;

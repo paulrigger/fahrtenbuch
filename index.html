@@ -317,6 +317,8 @@
   .ti .m b { display: flex; align-items: center; gap: 7px; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ti .m span { display: block; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .ti .r { flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .ti.baddate .d { color: var(--alert-ink); }
+  .ti.baddate .d::after { content: 'Datum?'; display: block; font-size: 10.5px; font-weight: 700; }
   .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex: none; }
   .tgap { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 0 6px; padding: 10px 12px; border-radius: var(--r-md);
           background: var(--err-bg); color: var(--err-ink); font-size: 14px; }
@@ -640,7 +642,7 @@ var QS = new URLSearchParams(location.search);
 var KEY = QS.get('k') || sget('fb-key') || '';
 if (QS.get('k')) sset('fb-key', QS.get('k'));
 var ME = sget('fb-driver') || '';
-var APP_VERSION = '2.11';
+var APP_VERSION = '2.12';
 var DEMO = QS.has('demo') || API_URL.indexOf('HIER_') >= 0;
 
 /* ---------- API ---------- */
@@ -667,7 +669,7 @@ function netErr() {
 function unwrap(d) { if (!d || d.ok === false) throw new Error((d && d.error) || 'Unbekannter Fehler'); return d; }
 
 /* ---------- Demo-Daten (?demo oder API_URL noch nicht gesetzt) ---------- */
-var MOCK = { ok: true, version: '2.11 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
+var MOCK = { ok: true, version: '2.12 (Demo)', drivers: ['Anna', 'Ben', 'Clara', 'David'], sheetUrl: '#',
   households: { Anna: 'PK', Ben: 'PK', Clara: 'TM', David: 'TM' }, hhLabels: { PK: 'Anna & Ben', TM: 'Clara & David' }, cars: [
   { sheet: 'Schwitzkarre', label: 'Schwitzkarre', open: true, driver: 'Ben', date: '01.01.2026', startKM: 10000, endKM: null, distance: null, lastKM: 10000, soc: 60, range: 220, socUpdated: '01.01.2026, 08:00' },
   { sheet: 'Julia Brettner', label: 'Julia Brettner', open: false, driver: 'Anna', date: '01.01.2026', startKM: 50000, endKM: 50042, distance: 42, lastKM: 50042 }
@@ -1057,7 +1059,7 @@ function stMonths() {
   var now = new Date(), out = [], i;
   if (ST_RANGE === '12m') { for (i = 11; i >= 0; i--) out.push(monKey(new Date(now.getFullYear(), now.getMonth() - i, 1))); return out; }
   if (ST_RANGE === 'year') { for (i = 0; i <= now.getMonth(); i++) out.push(monKey(new Date(now.getFullYear(), i, 1))); return out; }
-  var first = STATS.trips.concat(STATS.costs).reduce(function (a, x) { return x.m < a ? x.m : a; }, monKey(now));
+  var first = STATS.trips.concat(STATS.costs).reduce(function (a, x) { return x.m < a && x.m >= '2020-01' ? x.m : a; }, monKey(now));
   var p = first.split('-'), dt = new Date(+p[0], +p[1] - 1, 1);
   while (monKey(dt) <= monKey(now)) { out.push(monKey(dt)); dt = new Date(dt.getFullYear(), dt.getMonth() + 1, 1); }
   return out;
@@ -1481,7 +1483,7 @@ function loadTrips() {
 }
 function tripProbCount(car) {
   var d = TB.data[car]; if (!d) return 0;
-  var i = tripIssues(d.rows); return i.gaps.length + i.overlaps.length + i.unknown;
+  var i = tripIssues(d.rows); return i.gaps.length + i.overlaps.length + i.unknown + i.dates;
 }
 function tripProblemText() {
   var parts = ['Schwitzkarre', 'Julia Brettner'].filter(tripProbCount).map(function (c) { return c + ' (' + tripProbCount(c) + ')'; });
@@ -1505,14 +1507,18 @@ function tbMore() { TB.show += 100; renderTrips(); }
 
 /* Probleme zwischen aufeinanderfolgenden Zeilen (Sheet-Reihenfolge) */
 function tripIssues(rows) {
-  var out = { gaps: [], overlaps: [], unknown: 0, gapKm: 0 };
+  var out = { gaps: [], overlaps: [], unknown: 0, gapKm: 0, dates: 0 };
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
-    r.issue = null; r.prevDate = '';
+    r.issue = null; r.prevDate = ''; r.badDate = false;
     if (!r.p) out.unknown++;
+    var pv = i ? rows[i - 1] : null;
+    if (pv) r.prevDate = pv.date || pv.prevDate || '';
+    if (r.date) {
+      var y = +r.date.slice(0, 4), cy = new Date().getFullYear();
+      if (y < 2020 || y > cy + 1 || (r.prevDate && r.date < r.prevDate) || r.date > todayISO()) { r.badDate = true; out.dates++; }
+    }
     if (i === 0) continue;
-    var pv = rows[i - 1];
-    r.prevDate = pv.date || pv.prevDate || '';
     if (pv.end == null || r.start == null) continue;
     var d = r.start - pv.end;
     if (d > 0) { r.issue = { type: 'gap', km: d, from: pv.end, to: r.start, prev: i - 1 }; out.gaps.push(r); out.gapKm += d; }
@@ -1533,17 +1539,18 @@ function renderTrips() {
         return '<button type="button" class="' + (s[0] === TB.car ? 'on' : '') + '" onclick="tbCar(\'' + s[0] + '\')">' + s[1] + (tripProbCount(s[0]) ? '<i class="xbadge">!</i>' : '') + '</button>'; }).join('') + '</div>';
   var d = TB.data[TB.car];
   if (!d) { $('m-trips').innerHTML = h + '<div id="tb-body"><div class="skeleton" style="height:240px;margin-top:12px"></div></div>'; return; }
-  var rows = d.rows, iss = tripIssues(rows), nProb = iss.gaps.length + iss.overlaps.length + iss.unknown;
+  var rows = d.rows, iss = tripIssues(rows), nProb = iss.gaps.length + iss.overlaps.length + iss.unknown + iss.dates;
   h += '<div class="seg" style="margin-top:8px"><button type="button" class="' + (TB.filter === 'all' ? 'on' : '') + '" onclick="tbFilter(\'all\')">Alle (' + rows.length + ')</button>'
     + '<button type="button" class="' + (TB.filter === 'prob' ? 'on' : '') + (nProb ? ' probbtn' : '') + '" onclick="tbFilter(\'prob\')">Probleme (' + nProb + ')' + (nProb ? '<i class="xbadge">!</i>' : '') + '</button></div>';
   h += '<div class="tbsum">' + (nProb ? [
       iss.gaps.length ? '<span class="bad">' + iss.gaps.length + ' Lücke' + (iss.gaps.length > 1 ? 'n' : '') + ' · ' + fmt(iss.gapKm) + ' km</span>' : '',
       iss.overlaps.length ? '<span class="bad">' + iss.overlaps.length + ' Überschneidung' + (iss.overlaps.length > 1 ? 'en' : '') + '</span>' : '',
-      iss.unknown ? '<span class="bad">' + iss.unknown + '× Fahrer:in unbekannt</span>' : ''].filter(Boolean).join('')
+      iss.unknown ? '<span class="bad">' + iss.unknown + '× Fahrer:in unbekannt</span>' : '',
+      iss.dates ? '<span class="bad">' + iss.dates + '× Datum prüfen</span>' : ''].filter(Boolean).join('')
     : '<span class="ok">' + ic('check') + 'Keine Lücken – alles lückenlos</span>') + '</div>';
   var items = [], shown = 0, done = {};
   for (var i = rows.length - 1; i >= 0 && shown < TB.show; i--) {
-    var r = rows[i], prob = r.issue || !r.p;
+    var r = rows[i], prob = r.issue || !r.p || r.badDate;
     if (TB.filter === 'prob' && !prob) continue;
     if (!done[i]) { items.push(tbItem(r, i)); shown++; done[i] = 1; }
     if (r.issue) {
@@ -1562,7 +1569,7 @@ function tbItem(r, i) {
   var km = r.end != null && r.start != null ? r.end - r.start : null;
   var who = r.p ? '<i class="dot" style="background:var(--c-' + r.h.toLowerCase() + ')"></i>' + esc(r.p)
                 : '<span class="tag">unbekannt</span> ' + esc(r.driver || '–');
-  return '<div class="ti" onclick="openTrip(' + i + ')">' + tbDate(r)
+  return '<div class="ti' + (r.badDate ? ' baddate' : '') + '" onclick="openTrip(' + i + ')">' + tbDate(r)
     + '<div class="m"><b>' + who + '</b><span>' + fmt(r.start) + ' → ' + (r.end == null ? '…' : fmt(r.end)) + '</span></div>'
     + '<div class="r">' + (km == null ? '<span class="tag">unterwegs</span>' : '<b>' + fmt(km) + ' km</b>') + '</div></div>';
 }

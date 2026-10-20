@@ -346,6 +346,7 @@ Gepflegt als [GitHub Issues](../../issues) mit den Milestones **Phase 1** und **
 
 | Version | Neu |
 |---|---|
+| **2.12** | Statistik „Gesamt“ robust gegen Tippfehler im Datum; unplausible Daten als Problem im Fahrtenbuch |
 | **2.11** | Wallbox-Zähler: Abrechnung am Monatsletzten aus `Wallbox-Data`, Tab `Zählerstände`, Anzeige und Handeingabe in der App |
 | **2.10** | Formeln im Sheet mit Semikolon (deutsches Gebietsschema); verständliche Meldung bei Netzwerkfehlern |
 | **2.9** | Schnellerer Start: letzter Stand sofort aus dem Gerätespeicher, Aktualisierung im Hintergrund; API schreibt nur geänderte Zeilen |
