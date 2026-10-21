@@ -1689,9 +1689,10 @@ function renderExp() {
   var payer = s > 0.004 ? 'TM' : s < -0.004 ? 'PK' : null;
   var settleUI = !payer ? ''
     : myHH() === payer
-      ? '<button class="btn primary" onclick="settle()">' + ic('check') + 'Abrechnen</button>'
-        + (EXP.saldoProvisional ? '<div class="note">Vorläufige Tankbeträge werden beim Abrechnen mit dem aktuellen Anteil fixiert.</div>' : '')
-      : '<div class="note">Abrechnen kann ' + esc(hhLabel(payer)) + ' als zahlende Seite.</div>';
+      ? '<button class="btn primary" onclick="settle()">' + ic('check') + eur(Math.abs(s)) + ' überwiesen</button>'
+        + '<div class="note">Nach dem Überweisen hier tippen – der Saldo geht auf 0, ' + esc(hhLabel(payer === 'TM' ? 'PK' : 'TM')) + ' bestätigt dann den Eingang.'
+        + (EXP.saldoProvisional ? ' Vorläufige Tankbeträge werden dabei mit dem aktuellen Anteil fixiert.' : '') + '</div>'
+      : '<div class="note">Sobald ' + esc(hhLabel(payer)) + ' überwiesen haben, melden sie das hier mit „überwiesen“ – du bestätigst dann den Eingang.</div>';
   el.innerHTML = '<div class="lbl">Offener Saldo</div>'
     + '<div class="amt">' + eur(Math.abs(s)) + '</div>'
     + '<div class="who">' + who + '</div>'
@@ -1709,12 +1710,12 @@ function renderExp() {
       ? '<button class="btn primary" onclick="confirmSettlement(\'' + esc(st.id) + '\')">' + ic('check') + 'Zahlung erhalten – bestätigen</button>'
       : myHH() === st.from
         ? '<div class="wait">Wartet auf Bestätigung durch ' + esc(hhLabel(st.to)) + '.</div>'
-          + '<button class="linkbtn" onclick="cancelSettlement(\'' + esc(st.id) + '\')">Abrechnung zurückziehen</button>'
+          + '<button class="linkbtn" onclick="cancelSettlement(\'' + esc(st.id) + '\')">Doch nicht überwiesen – zurücknehmen</button>'
         : '';
-    return '<div class="settle"><div class="lbl">' + ic('receipt') + 'Offene Abrechnung</div>'
+    return '<div class="settle"><div class="lbl">' + ic('receipt') + 'Überweisung – wartet auf Bestätigung</div>'
       + '<div class="amt">' + eur(st.amount) + '</div>'
       + '<div class="who">' + esc(hhLabel(st.from)) + ' ' + ic('arrow') + ' ' + esc(hhLabel(st.to)) + '</div>'
-      + '<div class="meta">Erstellt ' + esc(st.created) + ' von ' + esc(st.createdBy) + ' · ' + st.count + ' Buchungen</div>'
+      + '<div class="meta">Gemeldet am ' + esc(st.created) + ' von ' + esc(st.createdBy) + ' · ' + st.count + ' Buchungen</div>'
       + act + '</div>';
   }).join('');
 
@@ -2049,16 +2050,16 @@ function settleCall(body, okMsg) {
 function settle() {
   if (!ME) return openPicker(true);
   var s = EXP.saldo, to = s > 0 ? 'PK' : 'TM';
-  if (!confirm(eur(Math.abs(s)) + ' an ' + hhLabel(to) + ' abrechnen?\n\nDer Saldo geht auf 0. ' + hhLabel(to) + ' bestätigt danach den Erhalt.')) return;
-  settleCall({ action: 'settle' }, 'Abrechnung erstellt – bitte ' + eur(Math.abs(s)) + ' überweisen');
+  if (!confirm('Hast du ' + eur(Math.abs(s)) + ' an ' + hhLabel(to) + ' überwiesen?\n\nDer Saldo geht auf 0. ' + hhLabel(to) + ' bestätigt danach den Eingang.')) return;
+  settleCall({ action: 'settle' }, 'Gemeldet – ' + hhLabel(to) + ' bestätigt den Eingang');
 }
 function confirmSettlement(id) {
-  if (!confirm('Zahlung erhalten? Die Buchungen werden damit als abgerechnet quittiert.')) return;
+  if (!confirm('Ist das Geld angekommen? Die Buchungen gelten damit als abgerechnet.')) return;
   settleCall({ action: 'confirmSettlement', id: id }, 'Zahlung bestätigt – erledigt');
 }
 function cancelSettlement(id) {
-  if (!confirm('Abrechnung zurückziehen? Die Buchungen werden wieder offen.')) return;
-  settleCall({ action: 'cancelSettlement', id: id }, 'Abrechnung zurückgezogen');
+  if (!confirm('Meldung zurücknehmen? Der Saldo ist dann wieder offen.')) return;
+  settleCall({ action: 'cancelSettlement', id: id }, 'Zurückgenommen – Saldo wieder offen');
 }
 
 /* ---------- Toast / News ---------- */
