@@ -672,17 +672,28 @@ function apiGet() {
   return cached('all', fetch(API_URL + '?action=all&key=' + encodeURIComponent(KEY), { cache: 'no-store' })
     .then(function (r) { return r.json(); }).then(unwrap));
 }
+/* MUT zählt abgeschlossene Änderungen. Lese-Antworten, die vor einer Änderung gestartet wurden, sind veraltet
+   und werden verworfen – sonst überschreibt ein langsamer Hintergrund-Refresh den neuen Stand. */
+var MUT = 0, PENDING = 0;
 function apiPost(body) {
   body.key = KEY; body.driver = ME;
-  if (DEMO) return mock(body);
-  // text/plain vermeidet den CORS-Preflight, den Apps Script nicht beantwortet
-  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
-    .catch(netErr).then(function (r) { return r.json(); }).then(unwrap);
+  PENDING++;
+  var p = DEMO ? mock(body)
+    // text/plain vermeidet den CORS-Preflight, den Apps Script nicht beantwortet
+    : fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) })
+        .catch(netErr).then(function (r) { return r.json(); }).then(unwrap);
+  return p.then(function (d) {
+    PENDING--; MUT++;
+    if (d && d.expenses) cput('exp', d);
+    if (d && d.rows && d.sheet) cput('trips-' + d.sheet, d);
+    if (d && d.cars && STATE && STATE.cars) { STATE.cars = d.cars; cput('all', STATE); }
+    return d;
+  }, function (e) { PENDING--; MUT++; throw e; });
 }
 /* Lokaler Zwischenspeicher: App zeigt sofort den letzten Stand, aktualisiert im Hintergrund */
 function cget(k) { if (DEMO) return null; try { if (sget('fb-c-key') !== KEY) return null; var v = localStorage.getItem('fb-c-' + k); return v ? JSON.parse(v) : null; } catch (e) { return null; } }
 function cput(k, d) { if (DEMO) return d; try { sset('fb-c-key', KEY); localStorage.setItem('fb-c-' + k, JSON.stringify(d)); } catch (e) {} return d; }
-function cached(k, p) { return p.then(function (d) { return cput(k, d); }); }
+function cached(k, p) { var m = MUT; return p.then(function (d) { if (m === MUT && !PENDING) cput(k, d); return d; }); }
 /* Netzwerkfehler (Safari: "Load failed", Chrome: "Failed to fetch") verständlich melden */
 function netErr() {
   throw new Error('Keine Verbindung zum Server (Netz schwach?). Bitte prüfen, ob es gespeichert wurde, und sonst nochmal versuchen.');
@@ -920,8 +931,10 @@ function load() {
     return;
   }
   $('refresh').classList.add('spin');
+  var m = MUT;
   apiGet().then(function (d) {
     $('refresh').classList.remove('spin');
+    if (m !== MUT || PENDING) return;   // inzwischen geändert -> veraltete Antwort verwerfen
     STATE = d; renderMe();
     var apiV = String(d.version || '').replace(' (Demo)', '');
     $('version').textContent = 'Version ' + APP_VERSION + (DEMO ? ' (Demo)' : apiV === APP_VERSION ? '' : ' · API ' + apiV + ' – bitte API aktualisieren');
@@ -1677,7 +1690,8 @@ function apiGetExp() {
 }
 function loadExp() {
   if (!KEY && !DEMO) return;
-  apiGetExp().then(function (d) { EXP = d; renderExp(); })
+  var m = MUT;
+  apiGetExp().then(function (d) { if (m !== MUT || PENDING) return; EXP = d; renderExp(); })
     .catch(function (e) { toast(e.message || String(e), true); });
 }
 
