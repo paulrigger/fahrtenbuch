@@ -332,6 +332,23 @@
   .tgap .btn { flex: none; padding: 8px 12px; font-size: 14px; }
   .mdiv { height: 1px; background: var(--line); margin: 18px -16px 14px; }
   .xi.preview { background: repeating-linear-gradient(135deg, transparent 0 10px, var(--grid) 10px 11px); }
+  /* Mobil: nichts darf über den Rand ragen (iOS-Datumsfelder haben eine eigene Mindestbreite) */
+  html, body { overflow-x: hidden; }
+  .fields > div, .fgroup, .card2, .kpi { min-width: 0; }
+  input, select, textarea { min-width: 0; max-width: 100%; }
+  input[type="date"], input[type="datetime-local"] { -webkit-appearance: none; appearance: none; display: block; width: 100%; text-align: left; }
+  input[type="date"]::-webkit-date-and-time-value, input[type="datetime-local"]::-webkit-date-and-time-value { text-align: left; }
+  .seg button { min-width: 0; }
+  .tblwrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tbl td.r, .tbl th.r { white-space: nowrap; }
+  .tabbar { max-width: calc(100vw - 16px); }
+  .tabbar button { min-width: 0; flex: 1 1 0; }
+  @media (max-width: 370px) {
+    .tabbar button { padding: 8px 6px; font-size: 12px; }
+    .seg button { font-size: 14px; padding-left: 6px; padding-right: 6px; }
+    .tbl { font-size: 13px; }
+    .tbl td, .tbl th { padding-left: 2px; padding-right: 2px; }
+  }
   .xbadge { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #ff3b30; color: #fff;
             font-style: normal; font-size: 12px; font-weight: 800; margin-left: 6px; vertical-align: 1px; flex: none; }
   .lrow.alert small { color: var(--alert-ink); font-weight: 600; }
@@ -1372,7 +1389,7 @@ function meterHTML() {
       + '<b>' + fmtKwh(Math.max(0, m.since.kwh)) + ' kWh' + (m.since.est != null ? ' · ≈ ' + eur(m.since.est) : '') + '</b></div></div>';
   }
   h += '<details class="tv" style="margin-top:12px"><summary>Zählerstand von Hand eintragen</summary>'
-    + '<div class="fields" style="margin-top:10px"><div><label for="mt-kwh">Zählerstand (kWh)</label><input id="mt-kwh" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 4.123,4"></div>'
+    + '<div class="fields single" style="margin-top:10px"><div><label for="mt-kwh">Zählerstand (kWh)</label><input id="mt-kwh" type="text" inputmode="decimal" autocomplete="off" placeholder="z. B. 4.123,4"></div>'
     + '<div><label for="mt-at">abgelesen am</label><input id="mt-at" type="datetime-local" value="' + nowLocal() + '"></div></div>'
     + '<div class="msg" id="mt-msg"></div><button class="btn primary" id="mt-save" style="width:100%;margin-top:10px" onclick="saveMeter()">' + ic('check') + 'Zählerstand speichern</button></details>';
   var log = m.log || [];
@@ -1433,17 +1450,17 @@ function aufCalc() {
   var eq = c.equalPct / 100;
   var r = dissolve({ equal: eq, assets: c.assets.map(function (a) {
     return { key: a.key, start: a.start, end: vals[a.key], owner: a.owner, km: a.key === 'Lade' ? null : (km[a.key] || { PK: 0, TM: 0 }) }; }) });
-  h += '<div class="sectitle">Wertverlust</div><table class="tbl"><tr><th></th><th class="r">Start</th><th class="r">heute</th><th class="r">Verlust</th></tr>'
+  h += '<div class="sectitle">Wertverlust</div><div class="tblwrap"><table class="tbl"><tr><th></th><th class="r">Start</th><th class="r">heute</th><th class="r">Verlust</th></tr>'
     + c.assets.map(function (a, i) {
         return '<tr><td>' + esc(a.label) + '<div class="muted" style="font-size:12px">' + ownerTxt(a) + '</div></td><td class="r">' + eur0(a.start) + '</td><td class="r">' + eur0(vals[a.key]) + '</td><td class="r">' + eur0(r.rows[i].loss) + '</td></tr>';
       }).join('')
-    + '</table>'
-    + '<div class="sectitle">Wer trägt welchen Wertverlust</div><table class="tbl"><tr><th></th><th class="r">' + esc(hhLabel('PK')) + '</th><th class="r">' + esc(hhLabel('TM')) + '</th></tr>'
+    + '</table></div>'
+    + '<div class="sectitle">Wer trägt welchen Wertverlust</div><div class="tblwrap"><table class="tbl"><tr><th></th><th class="r">' + esc(hhLabel('PK')) + '</th><th class="r">' + esc(hhLabel('TM')) + '</th></tr>'
     + c.assets.map(function (a, i) {
         var x = r.rows[i];
         return '<tr><td>' + esc(a.label) + '<div class="muted" style="font-size:12px">' + (x.kmShare == null ? 'je zur Hälfte' : c.equalPct + ' % je zur Hälfte, ' + (100 - c.equalPct) + ' % nach km') + '</div></td><td class="r">' + eur0(x.pk) + '</td><td class="r">' + eur0(x.tm) + '</td></tr>';
       }).join('')
-    + '<tr><td><b>Summe</b></td><td class="r"><b>' + eur0(r.loss.PK) + '</b></td><td class="r"><b>' + eur0(r.loss.TM) + '</b></td></tr></table>';
+    + '<tr><td><b>Summe</b></td><td class="r"><b>' + eur0(r.loss.PK) + '</b></td><td class="r"><b>' + eur0(r.loss.TM) + '</b></td></tr></table></div>';
   var who = function (v) { return v >= 0 ? [hhLabel('TM'), hhLabel('PK')] : [hhLabel('PK'), hhLabel('TM')]; };
   var line = function (lbl, v) {
     var w = who(v);
