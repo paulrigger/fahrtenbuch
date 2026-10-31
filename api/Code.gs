@@ -40,7 +40,8 @@ const CARS = {
 
 let SS_CACHE = null;
 /** Sheet öffnen – mit Wiederholung: Google meldet sporadisch "Sie sind nicht berechtigt, auf das gewünschte
- *  Dokument zuzugreifen", obwohl die Berechtigung passt (vorübergehender Fehler auf Google-Seite). */
+ *  Dokument zuzugreifen", obwohl die Berechtigung passt (vorübergehender Fehler auf Google-Seite).
+ *  Dieselbe Meldung kommt dauerhaft, wenn der Drive-Speicher des Besitzers voll ist (Sheet dann schreibgeschützt). */
 function ss_() {
   if (SS_CACHE) return SS_CACHE;
   let last;
@@ -48,7 +49,7 @@ function ss_() {
     try { SS_CACHE = SpreadsheetApp.openById(sheetId_()); SS_CACHE.getName(); return SS_CACHE; }
     catch (e) { last = e; SS_CACHE = null; Utilities.sleep(400 * (i + 1)); }
   }
-  throw new Error('Google-Sheet gerade nicht erreichbar (' + (last && last.message ? last.message : last) + ') – bitte in ein paar Sekunden nochmal versuchen.');
+  throw new Error('Google-Sheet gerade nicht erreichbar (' + (last && last.message ? last.message : last) + ') – bitte nochmal versuchen. Hält der Fehler an: Google-Drive-Speicher des Sheet-Besitzers voll?');
 }
 
 // ---------------------------------------------------------------- Setup
