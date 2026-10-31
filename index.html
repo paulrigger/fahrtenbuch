@@ -425,6 +425,7 @@
   .xi .r span { font-size: 12px; color: var(--muted); }
   .xi .r .tag { margin-top: 4px; }
   .tag { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 6px; border-radius: 999px; background: var(--warn-bg); color: var(--warn-ink); }
+  .tag.bad { background: var(--err-bg); color: var(--err-ink); }
   .empty { text-align: center; color: var(--muted); padding: 24px; font-size: 15px; }
 
   /* ---------- Formular ---------- */
@@ -1522,7 +1523,7 @@ function loadTrips() {
 }
 function tripProbCount(car) {
   var d = TB.data[car]; if (!d) return 0;
-  var i = tripIssues(d.rows); return i.gaps.length + i.overlaps.length + i.unknown + i.dates;
+  var i = tripIssues(d.rows); return i.gaps.length + i.overlaps.length + i.unknown + i.dates + i.open;
 }
 function tripProblemText() {
   var parts = ['Schwitzkarre', 'Julia Brettner'].filter(tripProbCount).map(function (c) { return c + ' (' + tripProbCount(c) + ')'; });
@@ -1546,11 +1547,14 @@ function tbMore() { TB.show += 100; renderTrips(); }
 
 /* Probleme zwischen aufeinanderfolgenden Zeilen (Sheet-Reihenfolge) */
 function tripIssues(rows) {
-  var out = { gaps: [], overlaps: [], unknown: 0, gapKm: 0, dates: 0 };
+  var out = { gaps: [], overlaps: [], unknown: 0, gapKm: 0, dates: 0, open: 0 };
   for (var i = 0; i < rows.length; i++) {
     var r = rows[i];
     r.issue = null; r.prevDate = ''; r.badDate = false;
     if (!r.p) out.unknown++;
+    // Fahrt ohne Ende, obwohl danach schon weitere Fahrten eingetragen sind
+    r.open = r.end == null && i < rows.length - 1;
+    if (r.open) out.open++;
     var pv = i ? rows[i - 1] : null;
     if (pv) r.prevDate = pv.date || pv.prevDate || '';
     if (r.date) {
@@ -1578,20 +1582,22 @@ function renderTrips() {
         return '<button type="button" class="' + (s[0] === TB.car ? 'on' : '') + '" onclick="tbCar(\'' + s[0] + '\')">' + s[1] + (tripProbCount(s[0]) ? '<i class="xbadge">!</i>' : '') + '</button>'; }).join('') + '</div>';
   var d = TB.data[TB.car];
   if (!d) { $('m-trips').innerHTML = h + '<div id="tb-body"><div class="skeleton" style="height:240px;margin-top:12px"></div></div>'; return; }
-  var rows = d.rows, iss = tripIssues(rows), nProb = iss.gaps.length + iss.overlaps.length + iss.unknown + iss.dates;
+  var rows = d.rows, iss = tripIssues(rows), nProb = iss.gaps.length + iss.overlaps.length + iss.unknown + iss.dates + iss.open;
   h += '<div class="seg" style="margin-top:8px"><button type="button" class="' + (TB.filter === 'all' ? 'on' : '') + '" onclick="tbFilter(\'all\')">Alle (' + rows.length + ')</button>'
     + '<button type="button" class="' + (TB.filter === 'prob' ? 'on' : '') + (nProb ? ' probbtn' : '') + '" onclick="tbFilter(\'prob\')">Probleme (' + nProb + ')' + (nProb ? '<i class="xbadge">!</i>' : '') + '</button></div>';
   h += '<div class="tbsum">' + (nProb ? [
       iss.gaps.length ? '<span class="bad">' + iss.gaps.length + ' Lücke' + (iss.gaps.length > 1 ? 'n' : '') + ' · ' + fmt(iss.gapKm) + ' km</span>' : '',
       iss.overlaps.length ? '<span class="bad">' + iss.overlaps.length + ' Überschneidung' + (iss.overlaps.length > 1 ? 'en' : '') + '</span>' : '',
       iss.unknown ? '<span class="bad">' + iss.unknown + '× Fahrer:in unbekannt</span>' : '',
-      iss.dates ? '<span class="bad">' + iss.dates + '× Datum prüfen</span>' : ''].filter(Boolean).join('')
+      iss.dates ? '<span class="bad">' + iss.dates + '× Datum prüfen</span>' : '',
+      iss.open ? '<span class="bad">' + iss.open + '× Fahrt ohne Ende</span>' : ''].filter(Boolean).join('')
     : '<span class="ok">' + ic('check') + 'Keine Lücken – alles lückenlos</span>') + '</div>';
   var items = [], shown = 0, done = {};
   for (var i = rows.length - 1; i >= 0 && shown < TB.show; i--) {
-    var r = rows[i], prob = r.issue || !r.p || r.badDate;
+    var r = rows[i], prob = r.issue || !r.p || r.badDate || r.open;
     if (TB.filter === 'prob' && !prob) continue;
     if (!done[i]) { items.push(tbItem(r, i)); shown++; done[i] = 1; }
+    if (r.open) items.push('<div class="tgap warn"><span>' + ic('alert') + '<span>Fahrt nie beendet<small>Danach sind schon weitere Fahrten eingetragen – Eintrag antippen und End-km nachtragen oder löschen (oft ein doppelter Start)</small></span></span></div>');
     if (r.issue) {
       items.push(tbIssue(r, i));
       // in der Problem-Ansicht auch die Fahrt VOR der Lücke/Überschneidung zeigen
@@ -1610,7 +1616,7 @@ function tbItem(r, i) {
                 : '<span class="tag">unbekannt</span> ' + esc(r.driver || '–');
   return '<div class="ti' + (r.badDate ? ' baddate' : '') + '" onclick="openTrip(' + i + ')">' + tbDate(r)
     + '<div class="m"><b>' + who + '</b><span>' + fmt(r.start) + ' → ' + (r.end == null ? '…' : fmt(r.end)) + '</span></div>'
-    + '<div class="r">' + (km == null ? '<span class="tag">unterwegs</span>' : '<b>' + fmt(km) + ' km</b>') + '</div></div>';
+    + '<div class="r">' + (km == null ? (r.open ? '<span class="tag bad">ohne Ende</span>' : '<span class="tag">unterwegs</span>') : '<b>' + fmt(km) + ' km</b>') + '</div></div>';
 }
 function tbIssue(r, i) {
   var x = r.issue;
