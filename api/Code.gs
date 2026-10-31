@@ -1,5 +1,5 @@
 /**
- * Fahrtenbuch API – v2.13 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
+ * Fahrtenbuch API – v2.14 (eigenes Apps-Script-Projekt, läuft PARALLEL zur bestehenden Web-App)
  *
  * Bereitstellen als Web-App:  Ausführen als: Ich   |   Zugriff: Jeder
  * Einmalig: Funktion setup() ausführen -> API-Key steht im Log (Ausführungsprotokoll).
@@ -18,7 +18,7 @@ function sheetId_() {
   if (!id) throw new Error('SHEET_ID fehlt – in den Skripteigenschaften eintragen.');
   return id;
 }
-const VERSION = '2.13';
+const VERSION = '2.14';
 const MAX_TRIP_KM = 3000;
 // Personen und Haushalte kommen aus der Skripteigenschaft HOUSEHOLDS (JSON), z. B.
 //   {"Anna":"PK","Ben":"PK","Clara":"TM","David":"TM"}
@@ -39,7 +39,17 @@ const CARS = {
 };
 
 let SS_CACHE = null;
-function ss_() { return SS_CACHE || (SS_CACHE = SpreadsheetApp.openById(sheetId_())); }
+/** Sheet öffnen – mit Wiederholung: Google meldet sporadisch "Sie sind nicht berechtigt, auf das gewünschte
+ *  Dokument zuzugreifen", obwohl die Berechtigung passt (vorübergehender Fehler auf Google-Seite). */
+function ss_() {
+  if (SS_CACHE) return SS_CACHE;
+  let last;
+  for (let i = 0; i < 4; i++) {
+    try { SS_CACHE = SpreadsheetApp.openById(sheetId_()); SS_CACHE.getName(); return SS_CACHE; }
+    catch (e) { last = e; SS_CACHE = null; Utilities.sleep(400 * (i + 1)); }
+  }
+  throw new Error('Google-Sheet gerade nicht erreichbar (' + (last && last.message ? last.message : last) + ') – bitte in ein paar Sekunden nochmal versuchen.');
+}
 
 // ---------------------------------------------------------------- Setup
 
